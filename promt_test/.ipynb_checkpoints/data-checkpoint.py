@@ -47,41 +47,23 @@ class LLMDataset:
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": filled_prompt}
         ]
-        system_content = messages[0]['content']
-        user_content = messages[1]['content']
-        system_tokens = self.tokenizer.encode(system_content, add_special_tokens=False)
-        user_tokens = self.tokenizer.encode(user_content, add_special_tokens=False)
-        total_tokens = len(system_tokens) + len(user_tokens)
+#         system_content = messages[0]['content']
+#         user_content = messages[1]['content']
+#         system_tokens = self.tokenizer.encode(system_content, add_special_tokens=False)
+#         user_tokens = self.tokenizer.encode(user_content, add_special_tokens=False)
+#         total_tokens = len(system_tokens) + len(user_tokens)
         
-        if total_tokens > self.max_length:
-            self.stats += 1
-            max_user_tokens = self.max_length - len(system_tokens)
-            if max_user_tokens > 0:
-                # с конца 
-                truncated_tokens = user_tokens[-max_user_tokens:]
-                messages[1]['content'] = self.tokenizer.decode(truncated_tokens)
-            else:
-                # В крайнем случае обрезаем системное сообщение
-                truncated_system = self.tokenizer.decode(system_tokens[:self.max_length])
-                messages = [{"role": "system", "content": truncated_system}]
-#         full_text = self.tokenizer.apply_chat_template(
-#             messages, 
-#             tokenize=False, 
-#             add_generation_prompt=True
-#         )
-# #         print('before', full_text)
-#         tokens = self.tokenizer.encode(full_text, add_special_tokens=False)
-#         if len(tokens) > self.max_length:
-#             print('before', messages)
-#             tokens = tokens[:self.max_length]
-#             # Декодируем обратно в текст с обрезкой
-#             truncated_text = self.tokenizer.decode(tokens)
-#             # Пересоздаем сообщения из обрезанного текста
-#             messages = [
-#                 {"role": "system", "content": "You are a helpful assistant."},
-#                 {"role": "user", "content": truncated_text.split("assistant.")[-1].strip()}  # Костыль для примера
-#             ]
-#             print('before', after)
+#         if total_tokens > self.max_length:
+#             self.stats += 1
+#             max_user_tokens = self.max_length - len(system_tokens)
+#             if max_user_tokens > 0:
+#                 # с конца 
+#                 truncated_tokens = user_tokens[-max_user_tokens:]
+#                 messages[1]['content'] = self.tokenizer.decode(truncated_tokens)
+#             else:
+#                 # В крайнем случае обрезаем системное сообщение
+#                 truncated_system = self.tokenizer.decode(system_tokens[:self.max_length])
+#                 messages = [{"role": "system", "content": truncated_system}]
         return messages
     def get_stats(self):
         return self.stats
@@ -151,3 +133,32 @@ def has_sentences(example):
     if 'question' and 'response' not in example:
         False
     return True
+
+def make_messages(item, article_prompt):
+    # собираем message
+    documents = ""
+    for doc in item['documents_sentences']:
+        for sentence in doc:
+            documents += " " + " ".join(sentence)
+        documents += "\n"
+    filled = article_prompt.format(
+        documents=documents,
+        question=item['question'],
+        answer=item['response']
+    )
+    return [
+        {"role":"system","content":"You are a helpful assistant."},
+        {"role":"user","content":filled}
+    ]
+
+def under_token_limit(item, prompt, tokenizer, max_tokens=8000):
+    messages = make_messages(item, prompt)
+    encoded = tokenizer.apply_chat_template(
+        messages,
+        add_generation_prompt=True,
+        truncation=False,
+        return_tensors="pt"
+    )
+    # shape == (1, seq_len)
+    seq_len = encoded.shape[1]
+    return seq_len <= max_tokens

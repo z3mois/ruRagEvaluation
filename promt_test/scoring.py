@@ -4,7 +4,8 @@ from promt_test.data import (
     parse_llm_responses,
     load_full_ragbench,
     sample_dataset,
-    has_sentences
+    has_sentences,
+    under_token_limit
 )
 from promt_test.utils import (
     send_async_requests
@@ -46,12 +47,15 @@ async def run_evaluation(article_prompt, client, model_id, tokenizer, sample_per
                 true_len = len(dataset[subset])
                 print(f'Датасет {name}.{subset}: {len(dataset[subset])}')
                 dataset[subset] = dataset[subset].filter(has_sentences)
+                print(f'Датасет {name}.{subset} после чистки: {len(dataset[subset])} на пусто')
+                dataset[subset] = dataset[subset].filter(lambda x: under_token_limit(x, article_prompt, tokenizer, max_tokens=8000))
+                print(f'Датасет {name}.{subset} после чистки: {len(dataset[subset])} на max_tokens')
                 delta = true_len - len(dataset[subset])
                 print(f'Датасет {name}.{subset} после чистки: {len(dataset[subset])}')
                 sampled_subset = sample_dataset(dataset[subset], sample_percent)
                 print(f'Взято из {name}.{subset} после чистки: {len(sampled_subset)}')
                 preds, token_len_error = await evalute_df(model_id, client, sampled_subset, article_prompt, tokenizer)
-                print(token_len_error)
+#                 print(token_len_error)
                 parsed_samples, failed_samples = parse_llm_responses(preds)
 
                 print(f'Успешно распарсено в {name}.{subset}: {len(parsed_samples)}')
