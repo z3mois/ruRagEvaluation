@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 from promt_test.metrics import (
     evaluate_dataset
 )
-
+import pickle
 import asyncio
 from tqdm import tqdm
 import numpy as np
@@ -60,14 +60,16 @@ async def run_evaluation(article_prompt, client, model_id, tokenizer, sample_per
 
                 print(f'Успешно распарсено в {name}.{subset}: {len(parsed_samples)}')
                 print(f'Ошибочных ответов в {name}.{subset}: {len(failed_samples)}')
-
+                
                 failed_idxs = {f['index'] for f in failed_samples}
                 filtered_ground_truths = [gt for idx, gt in enumerate(sampled_subset) if idx not in failed_idxs]
                 ground_truths = [{'all_utilized_sentence_keys': elem['all_utilized_sentence_keys'],
                   'all_relevant_sentence_keys': elem['all_relevant_sentence_keys']
                  } for elem in filtered_ground_truths]
                 metrics = evaluate_dataset(parsed_samples, filtered_ground_truths)
-                
+                for_save = {'failed_idxs_after':failed_idxs, 'parsed_answer': parsed_samples, 'preds': preds}
+                with open(f'../tmp/{name}.{subset}.pkl', 'wb') as f:
+                    pickle.dump(for_save, f)
                 results[name][subset] = metrics
                 bad[name][subset] = {}
 
@@ -75,6 +77,9 @@ async def run_evaluation(article_prompt, client, model_id, tokenizer, sample_per
                 
                 bad[name][subset]['token_len_error'] = token_len_error
                 bad[name][subset]['dataset_error'] = delta
+                for_save_tmp = {'bad':bad, 'results': results}
+                with open(f'../tmp/tmp_res.pkl', 'wb') as f:
+                    pickle.dump(for_save_tmp, f)
     relevant_overlaps, utilized_overlaps = [], []
     relevant_misses, utilized_misses = [], []
     relevant_extras, utilized_extras = [], []

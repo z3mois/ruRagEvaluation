@@ -14,11 +14,35 @@ async def send_chat_completion(messages, model,client, max_tokens=256, temperatu
 #             message['content'] = message['content'][:token_limit]
 #             messages[idx] = message
 #     print(messages)
-    completion = await client.chat.completions.create(model=model,
+    try:
+        completion = await client.chat.completions.create(model=model,
                                                       messages=messages,
                                                       max_tokens=max_tokens,
                                                       seed=42,
                                                       extra_body=extra_body)
+    except:
+        try:
+            completion = await client.chat.completions.create(model=model,
+                                                      messages=messages,
+                                                      max_tokens=max_tokens,
+                                                      seed=42,
+                                                      extra_body=extra_body)
+        except:
+            try:
+                completion = await client.chat.completions.create(model=model,
+                                                          messages=messages,
+                                                          max_tokens=max_tokens,
+                                                          seed=42,
+                                                          extra_body=extra_body)
+            except:
+                try:
+                    completion = await client.chat.completions.create(model=model,
+                                                              messages=messages,
+                                                              max_tokens=max_tokens,
+                                                              seed=42,
+                                                              extra_body=extra_body)
+                except Exception as e:
+                    raise(e)
     return completion.choices[0].message.content.strip()
 
 async def send_async_requests(prompts_messages, model,client,**kwargs):
