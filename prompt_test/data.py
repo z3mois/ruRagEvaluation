@@ -2,7 +2,7 @@ from datasets import load_dataset
 import random
 import numpy as np
 from tqdm import tqdm 
-DATASETS = ['covidqa', 'cuad', 'delucionqa', 'emanual', 'expertqa', 'finqa', 'hagrid', 'hotpotqa', 'msmarco', 'pubmedqa', 'tatqa', 'techqa']
+DATASETS = ['covidqa']#, 'cuad', 'delucionqa', 'emanual', 'expertqa', 'finqa', 'hagrid', 'hotpotqa', 'msmarco', 'pubmedqa', 'tatqa', 'techqa']
 
 def load_full_ragbench():
     ragbench = {}
