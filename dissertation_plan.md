@@ -65,7 +65,7 @@ RAGBench (EN) ──[перевод Qwen2.5-72B]──> RAGBench-RU (HF: CMCenjo
 - Backbone (трансформер) -> 3 параллельных линейных головы (relevance, utilization, adherence)
 - Вход: `[question] [SEP] [documents] [SEP] [response]`
 - Маски: `context_mask` (документы), `response_mask` (ответ)
-- Loss: взвешенная сумма BCE для трёх таргетов
+- Loss: взвешенная сумма BCE для трёх таргетов: relevance, utilization, adherence
 
 **Варианты весов лосса**:
 - 1:1:1 (равные веса) — базовый
