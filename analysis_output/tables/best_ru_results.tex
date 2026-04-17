@@ -1,0 +1,20 @@
+\begin{table}
+\caption{Лучшие конфигурации моделей на русскоязычном RAGBench (Test F1)}
+\label{tab:best_ru_results}
+\begin{tabular}{lcccccccc}
+\toprule
+Experiment & Head & Weights & Model & Max Len & best\_val\_f1 & Relevance F1 & Utilization F1 & Adherence F1 \\
+\midrule
+RU Complex 3:3:1 & Complex & 3:3:1 & DeBERTa-v3 & 128 & 0.9519 & 0.8869 & 0.7519 & 0.8700 \\
+RU Complex 3:3:1 & Complex & 3:3:1 & Tochka-AI/ruRoPEBert-e5-base-2k & 256 & 0.6534 & 0.5637 & 0.4696 & 0.9039 \\
+RU Complex 3:3:1 & Complex & 3:3:1 & ModernBERT & 512 & 0.6116 & 0.5569 & 0.4962 & 0.9155 \\
+RU Complex 3:3:1 & Complex & 3:3:1 & BGE-M3 & 512 & 0.5357 & 0.5187 & 0.4620 & 0.9191 \\
+RU Simple 1:1:1 & Simple & 1:1:1 & DeBERTa-v3 & 128 & 0.9536 & 0.8837 & 0.7519 & 0.8625 \\
+RU Simple 1:1:1 & Simple & 1:1:1 & ModernBERT & 2048 & 0.8034 & 0.7968 & 0.8328 & 0.9309 \\
+RU Simple 1:1:1 & Simple & 1:1:1 & BGE-M3 & 2048 & 0.8008 & 0.7956 & 0.8308 & 0.9352 \\
+RU Simple 3:3:1 & Simple & 3:3:1 & DeBERTa-v3 & 128 & 0.9519 & 0.8869 & 0.7519 & 0.8700 \\
+RU Simple 3:3:1 & Simple & 3:3:1 & ModernBERT & 2048 & 0.8081 & 0.7978 & 0.8406 & 0.9349 \\
+RU Simple 3:3:1 & Simple & 3:3:1 & BGE-M3 & 2048 & 0.8025 & 0.7962 & 0.8249 & 0.9368 \\
+\bottomrule
+\end{tabular}
+\end{table}

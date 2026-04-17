@@ -1,0 +1,14 @@
+\begin{table}
+\caption{Сравнение токен-классификатора и LLM-based оценки (Qwen2.5‑72B)}
+\label{tab:classifier_vs_llm}
+\begin{tabular}{lcccccc}
+\toprule
+метод & relevance (sentence overlap) & utilization (sentence overlap) & relevance miss (avg) & utilization miss (avg) & relevance (token F1) & utilization (token F1) \\
+\midrule
+Qwen2.5‑72B (LLM) & 0.7022 & 0.8301 & 1.0547 & 0.4842 & NaN & NaN \\
+BGE-M3 (len=2048, RU Simple 1:1:1) & NaN & NaN & NaN & NaN & 0.7956 & 0.8308 \\
+DeBERTa-v3 (len=128, RU Simple 1:1:1) & NaN & NaN & NaN & NaN & 0.8837 & 0.7519 \\
+ModernBERT (len=2048, RU Simple 1:1:1) & NaN & NaN & NaN & NaN & 0.7968 & 0.8328 \\
+\bottomrule
+\end{tabular}
+\end{table}
