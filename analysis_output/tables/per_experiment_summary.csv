@@ -1,0 +1,8 @@
+,mean_test_f1,mean_test_f1,test_relevance_f1,test_relevance_f1,test_utilization_f1,test_utilization_f1,test_adherence_f1,test_adherence_f1
+,mean,max,mean,max,mean,max,mean,max
+experiment,,,,,,,,
+RU Simple 1:1:1,0.8293,0.8539,0.7724,0.8837,0.7993,0.8468,0.9162,0.9364
+RU Simple 3:3:1,0.8256,0.8578,0.7674,0.8869,0.791,0.8467,0.9184,0.9368
+EN Simple 1:1:1,0.6091,0.7244,0.4834,0.6399,0.4323,0.6267,0.9117,0.9278
+EN Simple 3:3:1,0.5727,0.7467,0.4687,0.6589,0.391,0.659,0.8583,0.9253
+RU Complex 3:3:1,0.5743,0.8363,0.4628,0.8869,0.3994,0.7519,0.8606,0.9312

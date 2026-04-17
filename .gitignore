@@ -106,7 +106,7 @@ cython_debug/
 *.weights
 
 # Data files (CSV, JSON, etc. – но можно раскомментировать, если нужно игнорировать)
-*.csv
+
 *.json
 *.xlsx
 *.db
