@@ -1,0 +1,113 @@
+\subsection*{А.1. Промпт для перевода полей \texttt{documents\_sentences}}
+
+Ниже приведён системный и пользовательский промпты, использованные в Qwen2.5-72B-Instruct для перевода полей \texttt{documents\_sentences} (переведены на финальной версии конвейера, см. раздел~\ref{sec:translation_pipeline}).
+
+\begin{verbatim}
+SYSTEM:
+You translate from English to Russian. The input is a JSON list
+of sentences like [["0a","..."],["0b","..."], ...]. Return the SAME
+JSON list, where Russian translations keep the same positions.
+Rules:
+- DO NOT change the number of list items.
+- DO NOT change the keys (the first element in each pair).
+- DO NOT add Markdown, numbering, comments, or explanations.
+- Preserve proper names, numbers, measurement units, and URLs.
+- Translate fluently without changing the meaning.
+
+USER:
+<json-array-of-sentences>
+\end{verbatim}
+
+\subsection*{А.2. Промпт для LLM-разметки (Qwen2.5-72B)}
+
+\begin{verbatim}
+SYSTEM:
+You annotate the quality of RAG systems. Determine:
+1) which document sentences are relevant to the question;
+2) which of them are actually used in the answer;
+3) whether the full answer is supported by the context (adherence, true/false).
+
+USER:
+Question: {question}
+Documents (JSON, list of sentence lists with keys):
+{documents_sentences}
+Answer: {response}
+
+Return JSON:
+{
+  "all_relevant_sentence_keys":  [<keys>],
+  "all_utilized_sentence_keys":  [<keys>],
+  "adherence_score":             true | false
+}
+\end{verbatim}
+
+\subsection*{А.3. Статистика ошибок LLM-оценщика по поддатасетам}
+
+Таблица~\ref{tab:llm_errors} - агрегаты ошибок разметки Qwen2.5-72B 
+(overlap, miss, extra) на 7 тестовых поддатасетах RAGBench-RU. \emph{overlap} - 
+доля ключей, совпавших с эталоном; \emph{miss} - среднее число пропущенных ключей 
+на пример; \emph{extra} - среднее число лишних.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Поддатасетные метрики LLM-оценщика Qwen2.5-72B}
+\label{tab:llm_errors}
+\begin{tabular}{lcccccc}
+\toprule
+поддатасет & rel.~overlap & rel.~miss & rel.~extra & util.~overlap & 
+util.~miss & util.~extra \\
+\midrule
+hotpotqa   & 0.74 & 0.87 & 1.12 & 0.85 & 0.41 & 0.68 \\
+hagrid     & 0.68 & 1.25 & 1.34 & 0.81 & 0.55 & 0.73 \\
+expertqa   & 0.65 & 1.43 & 1.51 & 0.79 & 0.60 & 0.81 \\
+covidqa    & 0.71 & 0.94 & 1.08 & 0.84 & 0.44 & 0.67 \\
+delucionqa & 0.76 & 0.71 & 0.95 & 0.87 & 0.38 & 0.61 \\
+cuad       & 0.62 & 1.68 & 1.82 & 0.76 & 0.72 & 0.94 \\
+finqa      & 0.72 & 0.99 & 1.15 & 0.85 & 0.43 & 0.69 \\
+\midrule
+\textbf{среднее} & \textbf{0.70} & \textbf{1.12} & \textbf{1.28} & \textbf{0.83}
+ & \textbf{0.50} & \textbf{0.73} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Наибольшая доля избыточной генерации наблюдается в \texttt{cuad} (юридический домен)
+и \texttt{expertqa} (научный домен), где LLM склонна добавлять
+<<похоже релевантные>> предложения в разметку.
+
+\subsection*{А.4. Полная сетка конфигураций}
+
+Полная таблица всех $\sim$80 обученных конфигураций 
+(базовая модель, длина, веса, язык, голова, F1 на уровне токенов по таргетам) 
+доступна в файле \texttt{analysis\_output/tables/full\_grid.csv}. 
+В настоящем тексте приведены только основные агрегаты; CSV распространяется вместе 
+с кодом работы.
+
+\subsection*{А.5. Пример конфига эксперимента}
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,breaklines=true]
+# model_utils/config.py (fragment)
+@dataclass
+class DataConfig:
+    question_key:                str = "question_ru"
+    documents_sentences_key:     str = "documents_sentences_ru"
+    response_key:                str = "response_ru"
+    relevant_keys_field:         str = "all_relevant_sentence_keys"
+    utilized_keys_field:         str = "all_utilized_sentence_keys"
+    adherence_field:             str = "adherence_score"
+    max_length:                  int = 2048
+
+@dataclass
+class TrainingConfig:
+    num_epochs:            int   = 2
+    train_batch_size:      int   = 64
+    eval_batch_size:       int   = 32
+    backbone_lr:           float = 2e-5
+    head_lr:               float = 3e-4
+    weight_decay:          float = 1e-3
+    grad_clip:             float = 1.0
+    warmup_ratio:          float = 0.1
+    loss_weights:          Tuple[float,float,float] = (3.0, 3.0, 1.0)
+    amp:                   bool  = True
+\end{lstlisting}

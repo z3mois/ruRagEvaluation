@@ -1,0 +1,219 @@
+\section{Архитектура модели-оценщика}
+\label{sec:model}
+
+\subsection{Общая схема}
+
+Модель-оценщик представляет собой базовую трансформерную модель
+с тремя классификационными головами на уровне токенов, соответствующими
+целям TRACe: relevance, utilization, adherence. На вход модели поступает
+объединённая последовательность $[q][\text{SEP}][d_1, \dots, d_{|D|}][\text{SEP}][a]$,
+токенизированная единым токенизатором \glslink{backbone}{базовой модели}. На всех слоях
+используется стандартный механизм self-attention; дополнительные межтокенные зависимости в
+ классификационных головах не моделируются.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  node distance=7mm and 14mm,
+  block/.style={draw, rounded corners=2pt, align=center, minimum height=8mm, inner sep=2pt, font=\small},
+  head/.style={draw, rounded corners=2pt, align=center, fill=gray!10, minimum height=8mm, font=\small},
+  arr/.style={-latex}
+]
+\node[block] (input) {$[q]\,[\text{SEP}]\,[d_1,\dots,d_{|D|}]\,[\text{SEP}]\,[a]$};
+\node[block, below=of input] (tok) {Токенизатор};
+\node[block, below=of tok, fill=blue!8] (bb) {Базовая модель (DeBERTa / BGE-M3 / RuModernBERT)};
+\node[block, below=of bb] (hs) {Hidden states $H \in \mathbb{R}^{T \times d}$};
+\node[head, below left=8mm and 5mm of hs] (rel)  {Relevance\\ head};
+\node[head, below=8mm of hs] (util) {Utilization\\ head};
+\node[head, below right=8mm and 5mm of hs] (adh)  {Adherence\\ head};
+\node[block, below=22mm of hs, align=center] (loss) {$\mathcal{L} = \alpha_R\mathcal{L}_R + \alpha_U\mathcal{L}_U + \alpha_A\mathcal{L}_A$\\ (BCE по валидным токенам)};
+
+\draw[arr] (input) -- (tok);
+\draw[arr] (tok) -- (bb);
+\draw[arr] (bb) -- (hs);
+\draw[arr] (hs) -- (rel);
+\draw[arr] (hs) -- (util);
+\draw[arr] (hs) -- (adh);
+\draw[arr] (rel) -- (loss);
+\draw[arr] (util) -- (loss);
+\draw[arr] (adh) -- (loss);
+\end{tikzpicture}
+\caption{Общая схема токен-уровневого оценщика TRACe.}
+\label{fig:model_overview}
+\end{figure}
+
+\subsection{Две архитектуры головы}
+\label{sec:heads}
+
+\paragraph{Simple head.} Воспроизводит архитектуру из оригинальной статьи
+ RAGBench~\cite{friel2024ragbench}: после энкодера применяется общий слой
+  \texttt{Dropout} \cite{srivastava2014dropout} и три независимых линейных слоя $\mathbb{R}^d \to \mathbb{R}^1$, 
+  по одному для каждого таргета. 
+Формально, для скрытого состояния $h_t$ токена $t$:
+\[
+\ell^{(k)}_t = W^{(k)} h_t + b^{(k)}, \quad k \in \{R, U, A\},
+\]
+где $W^{(k)} \in \mathbb{R}^{1 \times d}$. Число параметров в головах составляет $3(d+1)$ - порядка 2.3~тыс. для базовой модели с $d=768$ и 4.6~тыс. для $d=1024$.
+
+\paragraph{Complex head.} Архитектура с общим MLP-преобразованием \cite{MLP} и индивидуальными 
+головами-MLP с функцией активации GELU \cite{hendrycks2016gaussian}:
+\begin{align*}
+x_t &= \mathrm{LN}\bigl(\mathrm{Dropout}(\mathrm{GELU}(W_1 h_t + b_1))\bigr) \in \mathbb{R}^{d_s}, \\
+\tilde{h}_t &= \mathrm{LN}\bigl(W_2 x_t + h_t\bigr),\\ 
+\ell^{(k)}_t &= V_2^{(k)} \bigl(\mathrm{Dropout}(\mathrm{GELU}(\mathrm{LN}(V_1^{(k)} \tilde{h}_t)))\bigr).
+\end{align*}
+Здесь $d_s$ совпадает с $d$ (\texttt{shared\_mult}~=~1), а внутренняя размерность
+ головы равна $d/2$ (\texttt{head\_mult}~=~0.5). Число параметров в головах возрастает
+  примерно на два порядка: $\sim$2.5~M для $d=768$.
+
+Сравнение двух вариантов в разделе~\ref{sec:ablation_head} показывает, что Complex-голова 
+систематически уступает Simple на относительно небольшом обучающем 
+корпусе ($\sim$25~тыс. примеров): дополнительные параметры переобучаются, а 
+на длинных контекстах (4096--8192) наблюдается деградация метрики вплоть до $F_1 \approx 0$.
+
+\subsection{Функция потерь}
+
+Лосс - взвешенная сумма бинарных кросс-энтропий по валидным токенам:
+\[
+\mathcal{L}(\theta) = \alpha_R \mathcal{L}_R + \alpha_U \mathcal{L}_U + \alpha_A \mathcal{L}_A,
+\]
+где для $k \in \{R, U\}$ суммирование идёт по маске документов $m^{(C)}_t$, а для $k = A$ -
+ по маске ответа $m^{(A)}_t$. Рассматриваются две схемы весов:
+\begin{itemize}
+  \item $(\alpha_R, \alpha_U, \alpha_A) = (1, 1, 1)$ - базовая;
+  \item $(\alpha_R, \alpha_U, \alpha_A) = (3, 3, 1)$ - гипотеза: adherence~
+  семантически более простая задача (булев флаг по предложению, а не расстановка токенных меток),
+   и её пониженный вес позволит сильнее сконцентрировать обучение на релевантности и использовании.
+\end{itemize}
+Эмпирический результат абляции (раздел~\ref{sec:ablation_weights}) -
+вариант 3:3:1 даёт маргинальный прирост порядка $|\Delta\bar{F}_1| \le 0.005$, 
+что укладывается в шум обучения.
+
+\subsection{Подбор порогов}
+\label{sec:thresholds}
+
+После обучения каждая голова выдаёт \glslink{логит}{логиты} $\ell^{(k)}_t$,
+которые превращаются в бинарные предсказания через сигмоид и порог:
+ $\hat{y}^{(k)}_t = \mathbb{1}[\sigma(\ell^{(k)}_t) \ge \tau_k]$.
+
+Пороги $\tau_R, \tau_U, \tau_A$ подбираются независимо для каждой головы 
+на валидационной выборке. Реализация в \texttt{model\_utils/metrics.py} 
+сводится к одному проходу по валидации для сбора вероятностей и перебору сетки
+ кандидатов $\tau \in \{0{.}1, 0{.}2, \dots, 0{.}7\}$. Для каждого 
+ кандидата вычисляется F1-мера на уровне токенов по маске соответствующего
+  таргета, после чего выбирается порог, максимизирующий данную метрику.
+
+Эмпирическое наблюдение (раздел~\ref{sec:thresholds_results}): оптимальные 
+пороги значительно отклоняются от 0.5 и зависят как от модели, так и от таргета. 
+Для adherence типичный оптимум - $\tau_A \in [0.5, 0.7]$; для relevance и utilization, 
+где положительный класс встречается реже, оптимальные пороги ниже - $\tau \in [0.2, 0.4]$.
+
+\subsection{Выбор базовой модели}
+\label{sec:backbones}
+
+В основной сетке экспериментов используются три базовые модели, охватывающие основные классы архитектур, применимых к русскоязычной задаче:
+
+\begin{itemize}
+  \item \textbf{DeBERTa-v3-large} (\texttt{MoritzLaurer/DeBERTa-v3-
+  large-mnli-fever-anli-ling-wanli}) - англоязычная базовая конфигурация из оригинальной
+  статьи RAGBench, предобучена на NLI-задачах. Максимальная длина контекста: 512.
+   Используется как контрольный эксперимент и для сравнения RU/EN.
+  \item \textbf{BGE-M3} (\texttt{BAAI/bge-m3} \cite{bge-m3} ) - мультиязычная модель,
+  обученная для поиска; архитектурно - XLM-RoBERTa-large с поддержкой длинного контекста
+   (до 8192 через масштабирование позиционных кодировок).
+  \item \textbf{RuModernBERT} (\texttt{deepvk/RuModernBERT-base} \cite{deepvk2025rumodernbert})
+     - русскоязычная модель ModernBERT, обученная на русскоязычном корпусе;
+     поддерживает обработку последовательностей длиной до 8192 токенов за счёт использования
+     вращательных позиционных эмбеддингов (rotary position embeddings \cite{su2024roformer}).
+\end{itemize}
+
+Дополнительно на предварительном этапе рассматривалась модель \textbf{ruRoPEBert-e5-base-2k}
+ (\texttt{Tochka-AI/ruRoPEBert-e5-base-2k}) - русскоязычный BERT с RoPE и контекстом до 2048
+  токенов, предобученный на задачах поиска. Результаты предварительного эксперимента
+   (раздел~\ref{sec:rope_preliminary}) показали несостоятельность этой модели в задаче
+    токен-уровневой классификации, и она была исключена из основной сетки.
+
+Мотивация выбора: (а)~DeBERTa дублирует базовую конфигурацию статьи и даёт
+верхнюю оценку качества на английском; (б)~BGE-M3 - сильнейший
+публично доступный мультиязычный энкодер с длинным контекстом;
+(в)~RuModernBERT - современная русскоязычная модель с rotary-позиционными
+ кодировками и поддержкой длинного контекста до 8192 токенов. Таким образом, сетка охватывает три
+ ортогональных оси: язык предобучения (EN / мультиязычная / RU), размер модели и схему
+  позиционных кодировок (абсолютные vs rotary).
+
+\subsection{Предварительный эксперимент с ruRoPEBert}
+\label{sec:rope_preliminary}
+
+Модель ruRoPEBert-e5-base-2k запускалась в идентичных с остальными базовыми моделями
+ условиях (RU, Simple-голова, веса лосса 3:3:1) на длинах контекста 512, 1024 и 2048 - как
+  предварительная проверка перед включением в основную сетку. На всех трёх длинах F1 по
+   relevance и utilization получался практически нулевым; adherence работал на уровне
+    $\approx 0.85$, однако это тривиальное поведение: доля положительных примеров по
+     adherence высока, и константный предсказатель <<всегда true>> достигает сопоставимого
+      F1 (см. обсуждение adherence как семантически наиболее простой задачи
+       в разделе \ref{sec:ablation_head}). На основании этого ruRoPEBert был исключён из основной
+        сетки, чтобы не тратить вычислительный бюджет на заведомо провальную конфигурацию.
+
+Рабочая гипотеза о причинах: предобучение ruRoPEBert по схеме e5 ориентировано на
+ задачу поиска (контрастивное обучение эмбеддингов предложений), что плохо согласуется
+  с классификацией фрагментов релевантных/использованных предложений на уровне токенов.
+   В отличие от DeBERTa (NLI-предобучение, близкое к задаче следования на токенах)
+    и RuModernBERT (универсальная MLM-модель), ruRoPEBert производит представления,
+     оптимизированные для агрегированного сопоставления, а не для позиционного разметочного
+      сигнала.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Результаты предварительного эксперимента на длине контекста 512 (RU, Simple,
+ веса 3:3:1). ruRoPEBert выдаёт нулевой F1 на relevance и utilization; значение
+  adherence $\approx 0.85$ объясняется более легким предсказанием, так как этот таргет всегда в конце.}
+\label{tab:rope_preliminary_512}
+\begin{tabular}{lccc}
+\toprule
+Модель & $F_1^{(R)}$ & $F_1^{(U)}$ & $F_1^{(A)}$ \\
+\midrule
+DeBERTa-v3-large        & 0.73 & 0.75 & 0.897 \\
+RuModernBERT-base       & 0.71 & 0.74 & 0.869 \\
+ruRoPEBert-e5-base-2k   & 0.00 & 0.00 & 0.852 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Зависимость F1 от длины контекста с разбиением по таргетам для всех трёх моделей
+ приведена на рис.~\ref{fig:rope_preliminary}: у ruRoPEBert кривые для relevance
+  и utilization остаются на нуле во всём проверенном диапазоне длин, тогда как у
+   DeBERTa и RuModernBERT значения лежат в рабочем диапазоне $0.7\text{--}0.9$.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{rope_preliminary_f1_vs_length.png}
+\caption{Зависимость $F_1$ от длины контекста с разбиением по таргетам (relevance,
+ utilization, adherence) для DeBERTa-v3-large, RuModernBERT-base и ruRoPEBert-e5-base-2k
+  (RU, Simple, веса 1:1:1). У ruRoPEBert линии для relevance и utilization лежат на нуле
+   при всех длинах.}
+\label{fig:rope_preliminary}
+\end{figure}
+
+\subsection{Детали обучения}
+\label{sec:training_details}
+
+Все эксперименты выполнялись в единой реализации 
+(модуль \texttt{model\_utils/}, конвейер \texttt{runner.py} + \texttt{train\_loop.py}):
+\begin{itemize}
+  \item \textbf{Оптимизатор}: AdamW с раздельными группами параметров для 
+  базовой модели ($\mathrm{lr} = 2{\times}10^{-5}$) и голов 
+  ($\mathrm{lr} = 3{\times}10^{-4}$), \texttt{weight\_decay}~=~0.001.
+  \item \textbf{Warmup}: линейный разогрев на 10\% шагов, затем линейное затухание до нуля.
+  \item \textbf{Батч}: 64 для обучения, 32 для валидации/теста. Для длин~$\ge$2048 батч
+   уменьшался до 2-4 с gradient accumulation.
+  \item \textbf{Точность}: FP16 mixed precision (torch AMP); \texttt{grad\_clip}~=~1.0.
+  \item \textbf{Число эпох}: 4 для всех конфигураций; при этом сохранялась лучшая по 
+  качеству на валидационной выборке модель, что позволяло ограничить переобучение.
+\end{itemize}
+
+Подбор гиперпараметров выполнялся только на 
+оси <<архитектура $\times$ длина $\times$ веса лосса>>: 
+остальные параметры (lr, warmup, dropout, weight decay) зафиксированы.
+ Такой дизайн позволяет интерпретировать вариации F1 как эффект изучаемых факторов, 
+ а не случайный шум гиперпараметрического поиска.

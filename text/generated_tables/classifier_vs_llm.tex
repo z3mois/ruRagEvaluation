@@ -1,0 +1,19 @@
+\begin{table}[H]
+\centering
+\caption{Сравнение токен-классификатора и LLM-based оценки (Qwen2.5-72B)}
+\label{tab:classifier_vs_llm}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccc}
+\toprule
+\multirow{2}{*}{метод} & \multicolumn{2}{c}{sentence overlap} & \multicolumn{2}{c}{miss (avg)} & \multicolumn{2}{c}{token $F_1$} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+ & R & U & R & U & R & U \\
+\midrule
+Qwen2.5-72B (LLM)                    & 0.7022 & 0.8301 & 1.0547 & 0.4842 & ---    & ---    \\
+BGE-M3 (len=2048, RU Simple 1:1:1)   & ---    & ---    & ---    & ---    & 0.7956 & 0.8308 \\
+DeBERTa-v3 (len=128, RU Simple 1:1:1)& ---    & ---    & ---    & ---    & 0.8837 & 0.7519 \\
+ModernBERT (len=2048, RU Simple 1:1:1)& ---   & ---    & ---    & ---    & 0.7968 & 0.8328 \\
+\bottomrule
+\end{tabular}
+\end{table}

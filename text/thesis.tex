@@ -1,0 +1,204 @@
+\documentclass[oneside,senior,etd]{BYUPhys}
+
+\usepackage{cmap}
+\usepackage[utf8]{inputenc}
+\usepackage{rotating}
+
+\usepackage[russian]{babel}
+\usepackage{amsfonts}
+\usepackage{amstext}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{subfig}
+\usepackage{color}
+\usepackage[unicode]{hyperref}
+\usepackage[nottoc]{tocbibind}
+\usepackage{verbatim}
+\usepackage{listings}
+
+\newcommand{\sectionbreak}{\clearpage}
+
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usetikzlibrary{arrows,positioning}
+\usepackage{adjustbox}
+
+\usepackage{makecell}
+\usepackage{booktabs}
+\usepackage{boldline}
+
+\usepackage{xcolor}
+\usepackage{soul}
+\usepackage{url}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{float}
+
+\usepackage{pifont}
+\usepackage{indentfirst}
+
+\usepackage{glossaries}
+\makeglossaries
+
+\lstset{
+  showstringspaces=false,
+  tabsize=4,
+  basicstyle=\linespread{1.0}\tt\small,
+  breaklines=true,
+  texcl=true,
+  captionpos=b,
+  aboveskip=\baselineskip,
+  commentstyle=\tt
+}
+\newcommand{\todo}[1]{\textcolor{red}{#1}}
+
+\graphicspath{{figures/}{../analysis_output/plots/}}
+
+\Faculty{Факультет вычислительной математики и кибернетики}
+\Chair{Кафедра алгоритмических языков}
+\Year{2026}
+  \Month{Июнь}
+  \City{Москва}
+  \AuthorText{Автор:}
+  \Author{Моисеев Дмитрий Александрович}
+  \AuthorEng{Moiseev Dmitry Alexandrovich}
+  \AcadGroup{624}
+
+  \TitleTop{Разработка и адаптация методов оценки}
+  \TitleMiddle{RAG-систем (систем генерации, дополненной поиском)}
+  \TitleBottom{для русского языка}
+
+  \TitleTopEng{Development and adaptation of evaluation }
+  \TitleMiddleEng{methods for retrieval augmented generation systems }
+  \TitleBottomEng{in Russian}
+
+\docname{МАГИСТЕРСКАЯ ДИССЕРТАЦИЯ}
+  \Advisor{М.М. Тихомиров}
+  \AdvisorDegree{Канд. физ.-мат. наук\\}
+
+\Abstract{
+В работе предложен и реализован комплексный подход к оценке
+ качества русскоязычных Retrieval-Augmented Generation систем.
+  На базе англоязычного бенчмарка RAGBench собран и опубликован его 
+  русскоязычный аналог RAGBench-RU (7~поддатасетов, переведённых Qwen2.5-72B). 
+  Разработан пайплайн обучения токен-уровневых моделей-оценщиков TRACe с тремя
+   классификационными головами (relevance, utilization, adherence) и автоматическим
+    подбором порогов. Проведена сетка экспериментов: четыре backbone (DeBERTa-v3-large,
+     BGE-M3, RuModernBERT, ruRoPEBert-e5-base-2k), семь длин контекста 
+     (128--8192~токенов), две схемы весов лосса 
+     (1:1:1 и~3:3:1), два языка (RU/EN) и две архитектуры головы (Simple, Complex) -
+      всего около восмидесяти обученных конфигураций. Лучшая конфигурация на русском
+       (ModernBERT-base, длина~2048, Simple~3:3:1) достигает
+        среднего Test~F1 = 0.858 и уверенно превосходит LLM-оценщик 
+        на базе Qwen2.5-72B по token-F1 для relevance и~utilization. 
+        Отдельно описан интерактивный сервис оценки на Streamlit и
+         проведён анализ переноса подхода на русский язык.
+}
+
+\AbstractEng{
+This thesis presents a comprehensive framework for evaluating 
+Russian-language Retrieval-Augmented Generation systems. Building on
+ the English RAGBench benchmark, we translate and release RAGBench-RU 
+ (7~sub-datasets, Qwen2.5-72B machine translation). We design a training pipeline
+  for token-level TRACe evaluators with three classification heads (relevance, 
+  utilization, adherence) and automatic threshold tuning. A grid of experiments 
+  spans four backbones (DeBERTa-v3-large, BGE-M3, RuModernBERT, ruRoPEBert-e5-base-2k),
+   seven context lengths (128--8192~tokens), two loss-weight schemes (1:1:1 and~3:3:1),
+    two languages (RU/EN) and two head architectures (Simple, Complex) -
+     around eighty trained configurations in total. The best Russian 
+     configuration (ModernBERT-base, length~2048, Simple~3:3:1) reaches mean 
+     Test~F1 = 0.858 and outperforms a Qwen2.5-72B LLM-based evaluator on 
+     token-F1 for relevance and utilization. An interactive Streamlit service 
+     and an analysis of cross-lingual transfer complete the study.
+}
+
+\TitlePageText{Титульная страница}
+\University{Московский государственный университет имени М.В.Ломоносова}
+\GrText{гр.}
+\AdvisorText{Научный руководитель}
+\ConsultantText{Научный консультант}
+\AbstractText{Аннотация}
+\AcknowledgmentsText{Благодарности}
+\ListingText{Листинг}
+\AlgorithmText{Алгоритм}
+
+\hypersetup{
+  pdftitle={\PDFTitle},
+  pdfauthor={\PDFAuthor}
+}
+
+\begin{document}
+\fixmargins
+ \makepreliminarypages
+
+\oneandhalfspace
+
+\pdfbookmark[section]{\contentsname}{toc}
+\tableofcontents
+
+\input{chapters/01_intro.tex}
+\input{chapters/02_related_work.tex}
+\input{chapters/03_problem_statement.tex}
+\input{chapters/04_dataset.tex}
+\input{chapters/05_model.tex}
+\input{chapters/06_experiments.tex}
+\input{chapters/07_service.tex}
+\input{chapters/08_conclusion.tex}
+
+\bibliographystyle{gost780u}
+\raggedright
+\bibliography{references}
+
+\appendix
+\cleardoublepage \phantomsection
+\section*{Приложение}
+\addcontentsline{toc}{section}{Приложение}
+\input{chapters/appendix.tex}
+
+\newglossaryentry{эмбеддинг}{
+    name=Эмбеддинг,
+    text=эмбеддинг,
+    description={представление слова или иных текстовых структур в виде числовых векторов}
+}
+\newglossaryentry{RAG}{
+    name=RAG,
+    description={Retrieval-Augmented Generation --- архитектура, сочетающая поиск по базе знаний и генерацию ответа большой языковой моделью}
+}
+\newglossaryentry{TRACe}{
+    name=TRACe,
+    description={фреймворк оценки RAG на четырёх метриках: Utilization, Relevance, Adherence, Completeness}
+}
+\newglossaryentry{токен}{
+    name=Токен,
+    text=токен,
+    description={элементарная единица, на которую текст разбивается перед подачей в языковую модель; как правило, соответствует части слова или целому короткому слову}
+}
+\newglossaryentry{ablation}{
+    name=Абляционное исследование,
+    text=абляционное исследование,
+    description={экспериментальный приём, при котором из системы поочерёдно исключаются или варьируются отдельные компоненты (например, длина контекста, веса функции потерь, архитектура головы) при фиксированных остальных; разница в итоговом качестве позволяет оценить вклад каждого компонента}
+}
+\newglossaryentry{промпт}{
+    name=Промпт,
+    text=промпт,
+    description={текстовая инструкция-запрос к большой языковой модели, задающая формат ответа, роль и ограничения; основной инструмент получения нужного поведения от LLM без дообучения}
+}
+\newglossaryentry{логит}{
+    name=Логит,
+    text=логит,
+    description={выход линейного слоя модели до применения функции активации (сигмоиды или softmax); в бинарной классификации превращается в вероятность через $\sigma(\cdot)$}
+}
+\newglossaryentry{llmjudge}{
+    name=LLM-оценщик,
+    text=LLM-оценщик,
+    description={схема оценки, в которой большая языковая модель (например, GPT-4 или Qwen2.5-72B) используется как <<судья>>: ей по промпту подаются вопрос, контекст и ответ, а на выходе запрашиваются метрики качества или разметка}
+}
+\newglossaryentry{backbone}{
+    name=Базовая модель (backbone),
+    text=базовая модель,
+    description={предобученная нейросетевая модель (как правило, трансформер-энкодер), поверх которой обучается узкая <<голова>> под конкретную задачу; отвечает за контекстные представления токенов}
+}
+
+\printglossaries
+\end{document}

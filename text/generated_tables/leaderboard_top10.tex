@@ -1,0 +1,23 @@
+\begin{table}[H]
+\centering
+\caption{Топ-10 конфигураций по среднему Test F1 (по всем экспериментам)}
+\label{tab:leaderboard_top10}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llcccccc}
+\toprule
+эксперимент & модель & длина & $\bar{F}_1$ & $F_1^{(R)}$ & $F_1^{(U)}$ & $F_1^{(A)}$ \\
+\midrule
+RU Simple 3:3:1 & ModernBERT & 2048 & 0.8578 & 0.7978 & 0.8406 & 0.9349 \\
+RU Simple 1:1:1 & BGE-M3     & 2048 & 0.8539 & 0.7956 & 0.8308 & 0.9352 \\
+RU Simple 1:1:1 & ModernBERT & 2048 & 0.8535 & 0.7968 & 0.8328 & 0.9309 \\
+RU Simple 3:3:1 & BGE-M3     & 2048 & 0.8526 & 0.7962 & 0.8249 & 0.9368 \\
+RU Simple 3:3:1 & DeBERTa-v3 & 512  & 0.8477 & 0.7829 & 0.8467 & 0.9135 \\
+RU Simple 1:1:1 & BGE-M3     & 512  & 0.8472 & 0.7938 & 0.8161 & 0.9318 \\
+RU Simple 1:1:1 & ModernBERT & 1024 & 0.8414 & 0.7769 & 0.8264 & 0.9209 \\
+RU Simple 3:3:1 & ModernBERT & 4096 & 0.8412 & 0.7682 & 0.8188 & 0.9366 \\
+RU Simple 3:3:1 & ModernBERT & 1024 & 0.8412 & 0.7757 & 0.8234 & 0.9245 \\
+RU Simple 1:1:1 & DeBERTa-v3 & 512  & 0.8406 & 0.7732 & 0.8468 & 0.9018 \\
+\bottomrule
+\end{tabular}
+\end{table}

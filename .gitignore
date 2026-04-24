@@ -130,3 +130,25 @@ cython_debug/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+# LaTeX build artifacts
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.gz
+*.glo
+*.gls
+*.glg
+*.ist
+*.acn
+*.acr
+*.alg
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.log
+*.out
+*.run.xml
+*.toc
+*.lof
+*.lot
