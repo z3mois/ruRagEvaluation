@@ -55,10 +55,26 @@ def main():
     threshold = float(run_meta["thresholds"]["relevance"])
     threshold_source = run_meta["threshold_source"]
     print(f"[analyze] threshold={threshold} (source={threshold_source}); "
-          f"score_field={args.score_field}; n_chunks={len(chunks)}")
+          f"score_field={args.score_field}; n_chunks_raw={len(chunks)}")
 
-    # mirror CSV for convenience
+    # mirror CSV for convenience (raw, before NaN filter)
     chunks.to_csv(scored_dir / "chunks_scored.csv", index=False)
+
+    # Drop rows where probabilities are NaN (chunks that produced 0 tokens after
+    # tokenisation — e.g. empty/whitespace-only chunks). They cannot participate
+    # in any metric and break sklearn AUC.
+    n_chunks_raw = int(len(chunks))
+    valid_mask = (
+        chunks["rel_prob_mean"].notna()
+        & chunks["rel_prob_max"].notna()
+        & chunks["util_prob_mean"].notna()
+        & chunks["util_prob_max"].notna()
+    )
+    n_dropped_nan = int((~valid_mask).sum())
+    if n_dropped_nan:
+        print(f"[analyze] dropping {n_dropped_nan}/{n_chunks_raw} chunk rows with NaN probs "
+              "(empty tokenisation)")
+    chunks = chunks[valid_mask].reset_index(drop=True)
 
     # -------- chunk-level threshold-dependent metrics --------
     y_true = chunks["gt_is_relevant"].astype(bool).to_numpy()
@@ -113,6 +129,8 @@ def main():
         "threshold_source": threshold_source,
         "score_field": args.score_field,
         "n_chunks": int(len(chunks)),
+        "n_chunks_raw": n_chunks_raw,
+        "n_chunks_dropped_nan": n_dropped_nan,
         "n_examples_processed": int(run_meta["n_processed"]),
         "n_examples_skipped": int(run_meta["n_skipped"]),
         "n_examples_truncated": int(run_meta["n_truncated"]),
