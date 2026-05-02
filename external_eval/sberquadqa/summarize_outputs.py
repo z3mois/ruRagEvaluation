@@ -310,6 +310,7 @@ def _plot_per_bucket(df_out, outputs_dir: Path, bucket_order: List[str]):
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
+    metric_panels = ["roc_auc", "pr_auc", "top1_acc"]
     fig, axes = plt.subplots(1, len(metric_panels), figsize=(5 * len(metric_panels), 4),
                              sharey=False)
     for ax, metric in zip(axes, metric_panels):
