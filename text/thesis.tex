@@ -80,36 +80,57 @@
 \Abstract{
 В работе предложен и реализован комплексный подход к оценке
  качества русскоязычных Retrieval-Augmented Generation систем.
-  На базе англоязычного бенчмарка RAGBench собран и опубликован его 
-  русскоязычный аналог RAGBench-RU (7~поддатасетов, переведённых Qwen2.5-72B). 
+  На базе англоязычного бенчмарка RAGBench собран и опубликован его
+  русскоязычный аналог RAGBench-RU: текстовые поля 7~поддатасетов переведены
+  моделью Qwen2.5-72B-Instruct, а эталонная разметка перенесена из исходного
+  RAGBench по сохранённым ключам предложений без повторной автоматической аннотации.
   Разработан пайплайн обучения токен-уровневых моделей-оценщиков TRACe с тремя
    классификационными головами (relevance, utilization, adherence) и автоматическим
-    подбором порогов. Проведена сетка экспериментов: четыре backbone (DeBERTa-v3-large,
-     BGE-M3, RuModernBERT, ruRoPEBert-e5-base-2k), семь длин контекста 
-     (128--8192~токенов), две схемы весов лосса 
+    подбором порогов. Проведена основная сетка экспериментов на трёх базовых моделях
+    (DeBERTa-v3-large, BGE-M3, RuModernBERT); ruRoPEBert-e5-base-2k проверялась только
+    на предварительном этапе и была исключена из основной сетки. Варьировались семь
+    длин контекста (128--8192~токенов), две схемы весов функции потерь
      (1:1:1 и~3:3:1), два языка (RU/EN) и две архитектуры головы (Simple, Complex) -
-      всего около восмидесяти обученных конфигураций. Лучшая конфигурация на русском
+      всего около восьмидесяти обученных конфигураций. Лучшая конфигурация на русском
        (ModernBERT-base, длина~2048, Simple~3:3:1) достигает
-        среднего Test~F1 = 0.858 и уверенно превосходит LLM-оценщик 
-        на базе Qwen2.5-72B по token-F1 для relevance и~utilization. 
+        среднего Test~F1 = 0.858 относительно эталонной разметки RAGBench-RU.
+        Дополнительно Qwen2.5-72B использован как LLM-оценщик без дообучения
+        на исходном англоязычном RAGBench на уровне предложений (совпадение по
+        предложениям, среднее число пропусков); русскоязычные данные RAGBench-RU
+        на вход большой языковой модели не подавались. Поэтому прямое сравнение
+        классификатора и LLM-оценщика по единой метрике на уровне токенов и на
+        одном корпусе в работе не проводилось, а полученное сопоставление
+        трактуется как сравнение с опорным ориентиром. Тем не менее наблюдаемые
+        результаты согласуются с идеей RAGBench о практической применимости
+        компактного классификатора как более дешёвой альтернативы LLM-оценщику.
         Отдельно описан интерактивный сервис оценки на Streamlit и
          проведён анализ переноса подхода на русский язык.
 }
 
 \AbstractEng{
-This thesis presents a comprehensive framework for evaluating 
+This thesis presents a comprehensive framework for evaluating
 Russian-language Retrieval-Augmented Generation systems. Building on
- the English RAGBench benchmark, we translate and release RAGBench-RU 
- (7~sub-datasets, Qwen2.5-72B machine translation). We design a training pipeline
-  for token-level TRACe evaluators with three classification heads (relevance, 
-  utilization, adherence) and automatic threshold tuning. A grid of experiments 
-  spans four backbones (DeBERTa-v3-large, BGE-M3, RuModernBERT, ruRoPEBert-e5-base-2k),
-   seven context lengths (128--8192~tokens), two loss-weight schemes (1:1:1 and~3:3:1),
+ the English RAGBench benchmark, we translate and release RAGBench-RU:
+ textual fields of 7~sub-datasets are machine-translated with Qwen2.5-72B-Instruct,
+ while the reference annotation is transferred from the original RAGBench via
+ preserved sentence keys, without re-running automatic annotation.
+ We design a training pipeline
+  for token-level TRACe evaluators with three classification heads (relevance,
+  utilization, adherence) and automatic threshold tuning. The main grid of
+  experiments spans three base models (DeBERTa-v3-large, BGE-M3, RuModernBERT);
+  ruRoPEBert-e5-base-2k was used only in a preliminary experiment and excluded
+  from the main grid. The grid covers seven context lengths (128--8192~tokens),
+  two loss-weight schemes (1:1:1 and~3:3:1),
     two languages (RU/EN) and two head architectures (Simple, Complex) -
-     around eighty trained configurations in total. The best Russian 
-     configuration (ModernBERT-base, length~2048, Simple~3:3:1) reaches mean 
-     Test~F1 = 0.858 and outperforms a Qwen2.5-72B LLM-based evaluator on 
-     token-F1 for relevance and utilization. An interactive Streamlit service 
+     around eighty trained configurations in total. The best Russian
+     configuration (ModernBERT-base, length~2048, Simple~3:3:1) reaches mean
+     Test~F1 = 0.858 against the RAGBench-RU reference annotation.
+     In addition, Qwen2.5-72B is used as a zero-shot sentence-level evaluator
+     on the original English RAGBench (sentence overlap, miss-avg); RAGBench-RU
+     examples are not passed to the LLM evaluator. Therefore, a direct
+     comparison of the classifier and the LLM evaluator under a single
+     token-level metric and on a single corpus is not carried out; this
+     comparison is treated only as a reference point. An interactive Streamlit service
      and an analysis of cross-lingual transfer complete the study.
 }
 
@@ -199,6 +220,27 @@ Russian-language Retrieval-Augmented Generation systems. Building on
     text=базовая модель,
     description={предобученная нейросетевая модель (как правило, трансформер-энкодер), поверх которой обучается узкая <<голова>> под конкретную задачу; отвечает за контекстные представления токенов}
 }
+\newglossaryentry{Бенчмарк}{
+    name=Бенчмарк,
+    text=Бенчмарк,
+    description={стандартизированный набор задач, 
+    данных и метрик, предназначенный для 
+    сравнительной оценки качества моделей или методов.}
+}
 
+\newglossaryentry{Датасет}{
+    name=Датасет,
+    text=Датасет,
+    description={структурированный набор данных, 
+    используемый 
+    для обучения, настройки или оценки моделей}
+}
+\newglossaryentry{Фреймворк}{
+    name=Фреймворк,
+    text=Фреймворк,
+    description={набор программных средств и
+     соглашений, предназначенных для 
+    разработки и интеграции прикладных компонентов}
+}
 \printglossaries
 \end{document}

@@ -1,24 +1,33 @@
-\subsection*{А.1. Промпт для перевода полей \texttt{documents\_sentences}}
+\subsection*{А.1. Промпт для машинного перевода текстовых полей}
 
-Ниже приведён системный и пользовательский промпты, использованные в Qwen2.5-72B-Instruct для перевода полей \texttt{documents\_sentences} (переведены на финальной версии конвейера, см. раздел~\ref{sec:translation_pipeline}).
+Для перевода текстовых полей RAGBench-RU использовался единый минимальный
+промпт к модели Qwen2.5-72B-Instruct. Модель получала отдельный текстовый
+фрагмент и возвращала только его русский перевод без дополнительных рассуждений
+или комментариев.
 
 \begin{verbatim}
 SYSTEM:
-You translate from English to Russian. The input is a JSON list
-of sentences like [["0a","..."],["0b","..."], ...]. Return the SAME
-JSON list, where Russian translations keep the same positions.
-Rules:
-- DO NOT change the number of list items.
-- DO NOT change the keys (the first element in each pair).
-- DO NOT add Markdown, numbering, comments, or explanations.
-- Preserve proper names, numbers, measurement units, and URLs.
-- Translate fluently without changing the meaning.
+Ты — профессиональный переводчик с английского на русский.
+Переводи точно и понятно. 
+Рассуждения и дополнительные пояснения не нужны; верни только перевод.
 
 USER:
-<json-array-of-sentences>
+{text}
 \end{verbatim}
 
-\subsection*{А.2. Промпт для LLM-разметки (Qwen2.5-72B)}
+Сохранение структуры примеров не задавалось отдельным JSON-промптом, а
+обеспечивалось на уровне конвейера: текстовые поля переводились отдельно,
+ключи предложений сохранялись из исходного корпуса, после чего выполнялись
+структурные проверки числа предложений и наличия ключей разметки.
+
+\subsection*{А.2. Промпт LLM-оценщика без дообучения (Qwen2.5-72B)}
+
+Промпт, использованный в сравнительном эксперименте оценки без дообучения на базе
+Qwen2.5-72B (см. раздел~\ref{sec:classifier_vs_llm}). Оценщик не используется для
+построения разметки корпуса RAGBench-RU. Промпт приведён в исходной англоязычной
+формулировке оригинальной статьи RAGBench и подавался большой языковой модели
+вместе с англоязычными примерами исходного корпуса; русскоязычная версия промпта
+и запуск на RAGBench-RU в рамках данной работы не выполнялись.
 
 \begin{verbatim}
 SYSTEM:
@@ -43,15 +52,22 @@ Return JSON:
 
 \subsection*{А.3. Статистика ошибок LLM-оценщика по поддатасетам}
 
-Таблица~\ref{tab:llm_errors} - агрегаты ошибок разметки Qwen2.5-72B 
-(overlap, miss, extra) на 7 тестовых поддатасетах RAGBench-RU. \emph{overlap} - 
-доля ключей, совпавших с эталоном; \emph{miss} - среднее число пропущенных ключей 
-на пример; \emph{extra} - среднее число лишних.
+Таблица~\ref{tab:llm_errors} - агрегаты ошибок разметки Qwen2.5-72B
+(совпадение, пропуски, лишние ключи) на тестовых поддатасетах исходного
+англоязычного RAGBench. \emph{overlap} - доля ключей, совпавших с эталоном;
+\emph{miss} - среднее число пропущенных ключей на пример; \emph{extra} -
+среднее число лишних. Метрики получены при запуске LLM-оценщика на
+англоязычных примерах с оригинальным англоязычным промптом из статьи
+RAGBench~\cite{friel2024ragbench}; русскоязычные данные RAGBench-RU на вход
+большой языковой модели не подавались. Соответственно, эти значения служат
+опорным ориентиром при сравнении с обученным классификатором, оценённым на
+русскоязычном RAGBench-RU, и не являются результатом контролируемого
+эксперимента на одном и том же корпусе.
 
 \begin{table}[H]
 \centering
 \small
-\caption{Поддатасетные метрики LLM-оценщика Qwen2.5-72B}
+\caption{Поддатасетные метрики LLM-оценщика Qwen2.5-72B (исходный англоязычный RAGBench)}
 \label{tab:llm_errors}
 \begin{tabular}{lcccccc}
 \toprule
@@ -100,7 +116,7 @@ class DataConfig:
 
 @dataclass
 class TrainingConfig:
-    num_epochs:            int   = 2
+    num_epochs:            int   = 4
     train_batch_size:      int   = 64
     eval_batch_size:       int   = 32
     backbone_lr:           float = 2e-5

@@ -1,19 +1,16 @@
 \begin{table}[H]
 \centering
-\caption{Сравнение токен-классификатора и LLM-based оценки (Qwen2.5-72B)}
+\caption{Метрики оценщика на базе большой языковой модели Qwen2.5-72B на исходном англоязычном RAGBench: совпадение по предложениям и среднее число пропусков для релевантных и использованных предложений. Русскоязычные данные RAGBench-RU на вход модели не подавались. Эти значения используются как опорный ориентир и не сопоставимы напрямую с метриками классификатора, который оценивается отдельно на RAGBench-RU на уровне токенов.}
 \label{tab:classifier_vs_llm}
 \small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{lcccccc}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{lcccc}
 \toprule
-\multirow{2}{*}{метод} & \multicolumn{2}{c}{sentence overlap} & \multicolumn{2}{c}{miss (avg)} & \multicolumn{2}{c}{token $F_1$} \\
-\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
- & R & U & R & U & R & U \\
+\multirow{2}{*}{метод} & \multicolumn{2}{c}{совпадение по предложениям} & \multicolumn{2}{c}{среднее число пропусков} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+ & релевантные & использованные & релевантные & использованные \\
 \midrule
-Qwen2.5-72B (LLM)                    & 0.7022 & 0.8301 & 1.0547 & 0.4842 & ---    & ---    \\
-BGE-M3 (len=2048, RU Simple 1:1:1)   & ---    & ---    & ---    & ---    & 0.7956 & 0.8308 \\
-DeBERTa-v3 (len=128, RU Simple 1:1:1)& ---    & ---    & ---    & ---    & 0.8837 & 0.7519 \\
-ModernBERT (len=2048, RU Simple 1:1:1)& ---   & ---    & ---    & ---    & 0.7968 & 0.8328 \\
+Qwen2.5-72B (англ. RAGBench) & 0.7022 & 0.8301 & 1.0547 & 0.4842 \\
 \bottomrule
 \end{tabular}
 \end{table}
