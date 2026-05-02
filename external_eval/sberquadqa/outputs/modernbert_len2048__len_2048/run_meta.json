@@ -1,0 +1,21 @@
+{
+  "model_key": "ModernBERT (len=2048)",
+  "checkpoint_dir": "deepvk/RuModernBERT-base",
+  "state_path": "/workdir/ruRagEvaluation_new/model_utils/sweeps3/deepvk__RuModernBERT-base/len_2048/model.pt",
+  "max_length": 2048,
+  "thresholds": {
+    "relevance": 0.5,
+    "utilization": 0.4,
+    "adherence": 0.1
+  },
+  "threshold_source": "result.json",
+  "response_mode": "gold_answer",
+  "truncate_enabled": false,
+  "device": "cuda",
+  "data_path": "/workdir/ruRagEvaluation_new/external_eval/sberquadqa/cache/sberquadqa_prepared.parquet",
+  "n_examples_input": 50362,
+  "n_processed": 50357,
+  "n_skipped": 5,
+  "n_truncated": 0,
+  "elapsed_sec": 858.72
+}

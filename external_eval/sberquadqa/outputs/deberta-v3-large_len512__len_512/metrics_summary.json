@@ -1,0 +1,43 @@
+{
+  "model_key": "DeBERTa-v3-large (len=512)",
+  "max_length": 512,
+  "threshold": 0.2,
+  "threshold_source": "result.json",
+  "score_field": "rel_prob_mean",
+  "n_chunks": 221077,
+  "n_chunks_raw": 221107,
+  "n_chunks_dropped_nan": 30,
+  "n_examples_processed": 45081,
+  "n_examples_skipped": 5281,
+  "n_examples_truncated": 0,
+  "n_chunks_relevant": 49360,
+  "n_chunks_irrelevant": 171717,
+  "accuracy": 0.6936406772301054,
+  "precision": 0.4170856993256358,
+  "recall": 0.9360008103727715,
+  "f1": 0.5770400484603231,
+  "mcc": 0.46639121635721165,
+  "confusion_matrix": {
+    "labels": [
+      false,
+      true
+    ],
+    "matrix": [
+      [
+        107147,
+        64570
+      ],
+      [
+        3159,
+        46201
+      ]
+    ]
+  },
+  "roc_auc_mean": 0.9126023356538658,
+  "roc_auc_max": 0.9183689784539484,
+  "pr_auc_mean": 0.7749245439758126,
+  "pr_auc_max": 0.7900795079141624,
+  "top1_acc": 0.838668175062665,
+  "topk_recall": 0.8254253454892305,
+  "overlap_ratio_mean": 0.9546372085801114
+}

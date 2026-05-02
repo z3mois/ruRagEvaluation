@@ -107,7 +107,7 @@ cython_debug/
 
 # Data files (CSV, JSON, etc. – но можно раскомментировать, если нужно игнорировать)
 
-*.json
+*.csv
 *.xlsx
 *.db
 *.sqlite

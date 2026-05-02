@@ -1,0 +1,43 @@
+{
+  "model_key": "ModernBERT (len=2048)",
+  "max_length": 2048,
+  "threshold": 0.5,
+  "threshold_source": "result.json",
+  "score_field": "rel_prob_mean",
+  "n_chunks": 265152,
+  "n_chunks_raw": 265192,
+  "n_chunks_dropped_nan": 40,
+  "n_examples_processed": 50357,
+  "n_examples_skipped": 5,
+  "n_examples_truncated": 0,
+  "n_chunks_relevant": 55300,
+  "n_chunks_irrelevant": 209852,
+  "accuracy": 0.8829312997827661,
+  "precision": 0.6673011406739218,
+  "recall": 0.874864376130199,
+  "f1": 0.7571145765682584,
+  "mcc": 0.6926760968198307,
+  "confusion_matrix": {
+    "labels": [
+      false,
+      true
+    ],
+    "matrix": [
+      [
+        185731,
+        24121
+      ],
+      [
+        6920,
+        48380
+      ]
+    ]
+  },
+  "roc_auc_mean": 0.9274673051676926,
+  "roc_auc_max": 0.9292764501574673,
+  "pr_auc_mean": 0.812750832009545,
+  "pr_auc_max": 0.8211895475363813,
+  "top1_acc": 0.8971146017435511,
+  "topk_recall": 0.880483348888933,
+  "overlap_ratio_mean": 0.9074905177035963
+}

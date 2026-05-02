@@ -1,0 +1,43 @@
+{
+  "model_key": "BAAI-bge-m3 (len=1024)",
+  "max_length": 1024,
+  "threshold": 0.4,
+  "threshold_source": "result.json",
+  "score_field": "rel_prob_mean",
+  "n_chunks": 265087,
+  "n_chunks_raw": 265127,
+  "n_chunks_dropped_nan": 40,
+  "n_examples_processed": 50347,
+  "n_examples_skipped": 15,
+  "n_examples_truncated": 0,
+  "n_chunks_relevant": 55288,
+  "n_chunks_irrelevant": 209799,
+  "accuracy": 0.8149701796014138,
+  "precision": 0.5337641112229546,
+  "recall": 0.8919657068441614,
+  "f1": 0.6678674693084324,
+  "mcc": 0.5854552081707861,
+  "confusion_matrix": {
+    "labels": [
+      false,
+      true
+    ],
+    "matrix": [
+      [
+        166723,
+        43076
+      ],
+      [
+        5973,
+        49315
+      ]
+    ]
+  },
+  "roc_auc_mean": 0.9201256754309026,
+  "roc_auc_max": 0.92585971607793,
+  "pr_auc_mean": 0.7909522777901096,
+  "pr_auc_max": 0.8116190240112575,
+  "top1_acc": 0.8911752438079726,
+  "topk_recall": 0.8735674419528472,
+  "overlap_ratio_mean": 0.9211968935587026
+}

@@ -1,0 +1,21 @@
+{
+  "model_key": "BAAI-bge-m3 (len=1024)",
+  "checkpoint_dir": "BAAI/bge-m3",
+  "state_path": "/workdir/ruRagEvaluation_new/model_utils/sweeps3/BAAI__bge-m3/len_1024/model.pt",
+  "max_length": 1024,
+  "thresholds": {
+    "relevance": 0.4,
+    "utilization": 0.4,
+    "adherence": 0.1
+  },
+  "threshold_source": "result.json",
+  "response_mode": "gold_answer",
+  "truncate_enabled": false,
+  "device": "cuda",
+  "data_path": "/workdir/ruRagEvaluation_new/external_eval/sberquadqa/cache/sberquadqa_prepared.parquet",
+  "n_examples_input": 50362,
+  "n_processed": 50347,
+  "n_skipped": 15,
+  "n_truncated": 0,
+  "elapsed_sec": 693.38
+}

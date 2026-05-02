@@ -1,0 +1,21 @@
+{
+  "model_key": "DeBERTa-v3-large (len=512)",
+  "checkpoint_dir": "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli",
+  "state_path": "/workdir/ruRagEvaluation_new/model_utils/sweeps3/MoritzLaurer__DeBERTa-v3-large-mnli-fever-anli-ling-wanli/len_512/model.pt",
+  "max_length": 512,
+  "thresholds": {
+    "relevance": 0.2,
+    "utilization": 0.5,
+    "adherence": 0.4
+  },
+  "threshold_source": "result.json",
+  "response_mode": "gold_answer",
+  "truncate_enabled": false,
+  "device": "cuda",
+  "data_path": "/workdir/ruRagEvaluation_new/external_eval/sberquadqa/cache/sberquadqa_prepared.parquet",
+  "n_examples_input": 50362,
+  "n_processed": 45081,
+  "n_skipped": 5281,
+  "n_truncated": 0,
+  "elapsed_sec": 1448.1
+}
