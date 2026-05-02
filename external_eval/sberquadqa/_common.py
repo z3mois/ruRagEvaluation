@@ -27,10 +27,10 @@ MODEL_REGISTRY: Dict[str, Dict[str, Any]] = {
         "state_path": str(SWEEPS_ROOT / "MoritzLaurer__DeBERTa-v3-large-mnli-fever-anli-ling-wanli" / "len_512" / "model.pt"),
         "max_length": 512,
     },
-    "ModernBERT (len=1024)": {
+    "ModernBERT (len=2048)": {
         "checkpoint_dir": "deepvk/RuModernBERT-base",
-        "state_path": str(SWEEPS_ROOT / "deepvk__RuModernBERT-base" / "len_1024" / "model.pt"),
-        "max_length": 1024,
+        "state_path": str(SWEEPS_ROOT / "deepvk__RuModernBERT-base" / "len_2048" / "model.pt"),
+        "max_length": 2048,
     },
     "BAAI-bge-m3 (len=1024)": {
         "checkpoint_dir": "BAAI/bge-m3",
