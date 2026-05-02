@@ -1,0 +1,12 @@
+{
+  "source": "bearberry/sberquadqa",
+  "split": "train",
+  "n_raw": 50364,
+  "n_kept": 50362,
+  "n_dropped_no_pos": 2,
+  "n_dropped_unanswerable": 0,
+  "require_positive": true,
+  "require_answerable": false,
+  "seed": 42,
+  "n_examples_arg": "50364"
+}
