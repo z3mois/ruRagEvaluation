@@ -120,13 +120,40 @@ def _copy_tokenizer(state_dir: Path, backbone: str, dst_dir: Path) -> str:
             shutil.copy2(src, dst_dir / name)
             copied_any = True
     if copied_any:
+        _normalise_tokenizer_config(dst_dir)
         return "copied"
 
     # Fallback: pull tokenizer fresh from the backbone.
     from transformers import AutoTokenizer
     tok = AutoTokenizer.from_pretrained(backbone, trust_remote_code=True)
     tok.save_pretrained(str(dst_dir))
+    _normalise_tokenizer_config(dst_dir)
     return "downloaded"
+
+
+# Some upstream backbones ship tokenizer_config.json with a `tokenizer_class`
+# value that does not exist in standard transformers (e.g. RuModernBERT-base
+# uses "TokenizersBackend"). AutoTokenizer.from_pretrained then refuses to
+# load. Replace those values with `PreTrainedTokenizerFast` when tokenizer.json
+# is present, since tokenizers backed by a single tokenizer.json file always
+# load via the fast wrapper.
+_BAD_TOKENIZER_CLASSES = {"TokenizersBackend"}
+
+
+def _normalise_tokenizer_config(dst_dir: Path):
+    cfg_path = dst_dir / "tokenizer_config.json"
+    if not cfg_path.exists():
+        return
+    try:
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+    except Exception as e:  # noqa: BLE001
+        print(f"[publish] warning: cannot read {cfg_path}: {e}")
+        return
+    cur = cfg.get("tokenizer_class")
+    if cur in _BAD_TOKENIZER_CLASSES and (dst_dir / "tokenizer.json").exists():
+        cfg["tokenizer_class"] = "PreTrainedTokenizerFast"
+        cfg_path.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"[publish] normalised tokenizer_class: {cur} -> PreTrainedTokenizerFast")
 
 
 def _copy_backbone_config(backbone: str, dst_dir: Path):
@@ -169,7 +196,11 @@ class DebertaTraceSimple(nn.Module):
 
     def __init__(self, backbone: str, dropout: float = 0.1):
         super().__init__()
-        self.base = AutoModel.from_pretrained(backbone, trust_remote_code=True)
+        # attn_implementation="eager" disables flash-attention, which is
+        # required for CPU inference and harmless on GPU.
+        self.base = AutoModel.from_pretrained(
+            backbone, trust_remote_code=True, attn_implementation="eager"
+        )
         hid = self.base.config.hidden_size
         self.dropout = nn.Dropout(dropout)
         self.rel_head = nn.Linear(hid, 1)
@@ -205,13 +236,44 @@ def main():
     docs = "22 марта 1895 года в Париже братьями Люмьер был впервые продемонстрирован их синематограф."
     answer = "братьями Люмьер"
 
-    sep = tokenizer.sep_token or tokenizer.eos_token or "[SEP]"
-    text = f"{{question}} {{sep}} {{docs}} {{sep}} {{answer}}"
-    enc = tokenizer(text, return_tensors="pt", truncation=True,
-                    max_length=cfg["max_length"])
-    out = model(input_ids=enc["input_ids"], attention_mask=enc["attention_mask"])
-    rel_probs = torch.sigmoid(out["logits_relevance"][0])
-    print("mean P(relevant) over tokens:", float(rel_probs.mean()))
+    # Build the input manually so we know exactly where context and response
+    # tokens live → required for proper utilization / adherence aggregation.
+    sep_id = tokenizer.sep_token_id or tokenizer.eos_token_id
+    q_ids = tokenizer.encode(question, add_special_tokens=False)
+    d_ids = tokenizer.encode(docs, add_special_tokens=False)
+    r_ids = tokenizer.encode(answer, add_special_tokens=False)
+    input_ids = q_ids + [sep_id] + d_ids + [sep_id] + r_ids
+    if len(input_ids) > cfg["max_length"]:
+        raise ValueError(f"input too long: {{len(input_ids)}} > {{cfg['max_length']}}")
+
+    ii = torch.tensor(input_ids).unsqueeze(0)
+    am = torch.ones_like(ii)
+    out = model(input_ids=ii, attention_mask=am)
+    rel = torch.sigmoid(out["logits_relevance"][0]).numpy()
+    util = torch.sigmoid(out["logits_utilization"][0]).numpy()
+    adh = torch.sigmoid(out["logits_adherence"][0]).numpy()
+
+    ctx_start = len(q_ids) + 1
+    ctx_end = ctx_start + len(d_ids)
+    resp_start = ctx_end + 1
+    resp_end = resp_start + len(r_ids)
+
+    mean_rel_ctx = float(rel[ctx_start:ctx_end].mean()) if len(d_ids) else float("nan")
+    mean_util_ctx = float(util[ctx_start:ctx_end].mean()) if len(d_ids) else float("nan")
+    mean_adh_resp = float(adh[resp_start:resp_end].mean()) if len(r_ids) else float("nan")
+
+    thr_rel = thresholds["relevance"]
+    thr_util = thresholds["utilization"]
+    thr_adh = thresholds["adherence"]
+
+    print()
+    print("=== TRACe scores ===")
+    print(f"relevance   (mean over context tokens):  {{mean_rel_ctx:.3f}}  "
+          f"thr={{thr_rel:.2f}} -> context_relevant={{mean_rel_ctx > thr_rel}}")
+    print(f"utilization (mean over context tokens):  {{mean_util_ctx:.3f}}  "
+          f"thr={{thr_util:.2f}} -> context_used={{mean_util_ctx > thr_util}}")
+    print(f"adherence   (mean over response tokens): {{mean_adh_resp:.3f}}  "
+          f"thr={{thr_adh:.2f}} -> answer_grounded={{mean_adh_resp > thr_adh}}")
 
 
 if __name__ == "__main__":
@@ -243,7 +305,11 @@ REPO_ID = "{repo_id}"
 class DebertaTraceSimple(nn.Module):
     def __init__(self, backbone: str, dropout: float = 0.1):
         super().__init__()
-        self.base = AutoModel.from_pretrained(backbone, trust_remote_code=True)
+        # attn_implementation="eager" disables flash-attention, which is
+        # required for CPU inference and harmless on GPU.
+        self.base = AutoModel.from_pretrained(
+            backbone, trust_remote_code=True, attn_implementation="eager"
+        )
         hid = self.base.config.hidden_size
         self.dropout = nn.Dropout(dropout)
         self.rel_head = nn.Linear(hid, 1)
@@ -285,22 +351,41 @@ def score_chunks(question: str, chunks: List[str], answer: str,
     am = torch.ones_like(ii)
     out = model(input_ids=ii, attention_mask=am)
     rel = torch.sigmoid(out["logits_relevance"][0]).numpy()
+    util = torch.sigmoid(out["logits_utilization"][0]).numpy()
+    adh = torch.sigmoid(out["logits_adherence"][0]).numpy()
 
     chunk_ids_arr = torch.tensor(chunk_ids).numpy()
-    results = []
+    chunk_rows = []
     for cid, chunk_text in enumerate(chunks):
         mask = chunk_ids_arr == cid
         n = int(mask.sum())
         if n == 0:
-            results.append({{"chunk_id": cid, "rel_prob_mean": float("nan")}})
+            chunk_rows.append({{
+                "chunk_id": cid,
+                "n_tokens": 0,
+                "rel_prob_mean": float("nan"), "rel_prob_max": float("nan"),
+                "util_prob_mean": float("nan"), "util_prob_max": float("nan"),
+            }})
             continue
-        results.append({{
+        chunk_rows.append({{
             "chunk_id": cid,
             "n_tokens": n,
-            "rel_prob_mean": float(rel[mask].mean()),
-            "rel_prob_max":  float(rel[mask].max()),
+            "rel_prob_mean":  float(rel[mask].mean()),
+            "rel_prob_max":   float(rel[mask].max()),
+            "util_prob_mean": float(util[mask].mean()),
+            "util_prob_max":  float(util[mask].max()),
         }})
-    return results
+
+    # Adherence is a per-response quantity (it asks "are response tokens grounded
+    # in the context?"), so it is aggregated over response tokens, not chunks.
+    resp_start = len(q_ids) + 1 + len(doc_ids) + 1
+    resp_end = resp_start + len(r_ids)
+    mean_adh_resp = float(adh[resp_start:resp_end].mean()) if len(r_ids) else float("nan")
+
+    return {{
+        "chunks": chunk_rows,
+        "mean_adherence_over_response": mean_adh_resp,
+    }}
 
 
 def main():
@@ -320,12 +405,33 @@ def main():
     ]
     answer = "братьями Люмьер"
 
-    rows = score_chunks(question, chunks, answer, model, tokenizer, cfg["max_length"])
+    out = score_chunks(question, chunks, answer, model, tokenizer, cfg["max_length"])
     thr_rel = cfg["thresholds"]["relevance"]
-    print(f"threshold(relevance)={{thr_rel}}")
-    for r in rows:
-        pred = r.get("rel_prob_mean", 0.0) > thr_rel
-        print(f"  chunk {{r['chunk_id']}}: {{r}} -> pred_relevant={{pred}}")
+    thr_util = cfg["thresholds"]["utilization"]
+    thr_adh = cfg["thresholds"]["adherence"]
+
+    print(f"thresholds: relevance={{thr_rel}}  utilization={{thr_util}}  adherence={{thr_adh}}")
+    print()
+    print("=== Per-chunk scores (relevance + utilization) ===")
+    for r in out["chunks"]:
+        rel_m = r["rel_prob_mean"]
+        util_m = r["util_prob_mean"]
+        rel_pred = rel_m > thr_rel if rel_m == rel_m else False  # NaN-safe
+        util_pred = util_m > thr_util if util_m == util_m else False
+        print(f"  chunk {{r['chunk_id']}} | n_tokens={{r['n_tokens']:>3}} | "
+              f"rel={{rel_m:.3f}} (pred_relevant={{rel_pred}}) | "
+              f"util={{util_m:.3f}} (used_in_answer={{util_pred}})")
+
+    print()
+    print("=== Per-response score (adherence) ===")
+    adh = out["mean_adherence_over_response"]
+    print(f"  mean P(adherence over response tokens) = {{adh:.3f}}  "
+          f"thr={{thr_adh:.2f}} -> answer_grounded={{adh > thr_adh}}")
+    print()
+    print("Hints:")
+    print("  - relevance:   does this chunk contain information relevant to the question?")
+    print("  - utilization: was this chunk actually used to produce the answer?")
+    print("  - adherence:   are the response tokens grounded in the provided context?")
 
 
 if __name__ == "__main__":
