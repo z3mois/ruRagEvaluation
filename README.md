@@ -2,7 +2,7 @@
 
 Адаптация фреймворка [TRACe (RAGBench)](https://arxiv.org/abs/2407.11005) для оценки RAG-систем на русском языке.
 
-Магисетерская диссертация, 2024–2026. Датасет: [CMCenjoyer/ragbench-ru](https://huggingface.co/datasets/CMCenjoyer/ragbench-ru). Текст работы: [text/thesis.pdf](text/thesis.pdf).
+Магисетерская диссертация, 2024–2026. Датасет: [CMCenjoyer/ragbench-ru](https://huggingface.co/datasets/CMCenjoyer/ragbench-ru). Опубликованная модель: [CMCenjoyer/ru-trace-modernbert-2048](https://huggingface.co/CMCenjoyer/ru-trace-modernbert-2048). Текст работы: [text/thesis.pdf](text/thesis.pdf).
 
 ## О проекте
 
