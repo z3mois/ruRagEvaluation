@@ -1,13 +1,3 @@
-"""Download bearberry/sberquadqa, map to RAGBench-RU format, save parquet.
-
-GT for downstream metrics is taken DIRECTLY from `context[i]["is_relevant"]` —
-prefix-match in `all_relevant_sentence_keys` is intentionally NOT used here.
-
-Usage:
-    python -m external_eval.sberquadqa.prepare_dataset --n_examples 5000
-    python -m external_eval.sberquadqa.prepare_dataset --n_examples 50  # smoke
-    python -m external_eval.sberquadqa.prepare_dataset --n_examples all
-"""
 from __future__ import annotations
 
 import argparse
@@ -15,7 +5,7 @@ import json
 import random
 from pathlib import Path
 from typing import Any, Dict, List
-
+import pandas as pd
 DEFAULT_OUT = Path(__file__).resolve().parent / "cache" / "sberquadqa_prepared.parquet"
 
 
@@ -34,16 +24,13 @@ def map_example(ex: Dict[str, Any]) -> Dict[str, Any]:
     is_answerable = bool(metadata.get("is_answerable", False))
 
     return {
-        # RAGBench-format fields (consumed by preprocess_one_with_chunk_ids)
         "question_ru": ex["question"],
         "response_ru": response,
         "documents_sentences_ru": documents_sentences_ru,
-        # We intentionally leave these empty: GT comes from gt_is_relevant_per_chunk below.
         "all_relevant_sentence_keys": [],
         "all_utilized_sentence_keys": [],
         "adherence_score": 0.0,
 
-        # Bookkeeping / GT
         "orig_id": ex["id"],
         "n_chunks": len(context),
         "gt_is_relevant_per_chunk": gt_is_relevant_per_chunk,
@@ -97,7 +84,7 @@ def main():
             mapped = mapped[:n]
             print(f"[prepare] sampled to {len(mapped)} (seed={args.seed})")
 
-    import pandas as pd
+
     df = pd.DataFrame(mapped)
     df.to_parquet(args.out, index=False)
     print(f"[prepare] wrote {len(df)} rows -> {args.out}")

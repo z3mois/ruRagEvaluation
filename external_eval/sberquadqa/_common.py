@@ -1,8 +1,3 @@
-"""Pure helpers for OOD scoring of trained TRACE evaluators on bearberry/sberquadqa.
-
-Copies of the streamlit-free logic from new_streamlit.py (no streamlit imports).
-Adds chunk-id tracking so token-level probs can be aggregated to chunk-level scores.
-"""
 from __future__ import annotations
 
 import json
@@ -122,7 +117,7 @@ def preflight_check(model_key: str) -> PreflightReport:
             if isinstance(tuned, dict) and all(t in tuned for t in TARGET_NAMES):
                 thresholds = {t: float(tuned[t]) for t in TARGET_NAMES}
                 threshold_source = "result.json"
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             threshold_source = f"default_0.5 (result.json parse failed: {e})"
 
     msg_parts = []
@@ -233,7 +228,7 @@ def preprocess_one_with_chunk_ids(
     response_mask = [0] * (q_len + 1 + d_len + 1) + [1] * r_len
     chunk_id_per_token = [-1] * (q_len + 1) + chunk_id_per_doc_token + [-1] + [-1] * r_len
 
-    if len(input_ids) > max_length:  # safety
+    if len(input_ids) > max_length:
         return None
 
     return {

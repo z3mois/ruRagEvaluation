@@ -1,10 +1,3 @@
-"""Pick qualitative examples for the diploma write-up from ModernBERT scored outputs.
-
-Reads only existing artifacts (no inference, no threshold tuning).
-
-Usage:
-    python -m external_eval.sberquadqa.build_qualitative_examples
-"""
 from __future__ import annotations
 
 import argparse
@@ -46,9 +39,8 @@ def _build_per_example(chunks_df) -> Dict[str, Dict[str, Any]]:
             "example_id": ex_id,
             "n_chunks_scored": int(len(g)),
             "n_gt_relevant": int(g["gt_is_relevant"].astype(bool).sum()),
-            "df": g,  # keep for later use
+            "df": g,
         }
-        # rank of first GT-relevant chunk (1-based); -1 if none
         gt_rows = g[g["gt_is_relevant"].astype(bool)]
         rec["first_gt_rank"] = int(gt_rows.iloc[0]["rank"]) if not gt_rows.empty else -1
         rec["top1_is_relevant"] = bool(g.iloc[0]["gt_is_relevant"])
@@ -66,14 +58,11 @@ def _select_success(per_ex: Dict[str, Dict], used: set, n: int = 2) -> List[Dict
             continue
         if not rec["top1_is_relevant"]:
             continue
-        # require not-too-trivial example: at least 5 chunks
         if rec["n_chunks_scored"] < 5:
             continue
-        # require top-1 score clearly above 0.5
         if rec["top1_rel_prob_mean"] < 0.6:
             continue
         candidates.append(rec)
-    # diversify by n_chunks_scored bucket
     candidates.sort(key=lambda r: -r["top1_rel_prob_mean"])
     picked: List[Dict] = []
     seen_buckets: set = set()
@@ -131,7 +120,6 @@ def _select_fn(per_ex: Dict[str, Dict], used: set, n: int = 2) -> List[Dict]:
             continue
         worst_gt_rank = int(gt["rank"].max())
         worst_gt_score = float(gt["rel_prob_mean"].min())
-        # criterion: a relevant chunk got ranked >5 or scored very low
         if not (worst_gt_rank > 5 or worst_gt_score < 0.3):
             continue
         if rec["n_chunks_scored"] < 6:

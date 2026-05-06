@@ -1,9 +1,3 @@
-"""Run score + analyze for every model in MODEL_REGISTRY whose checkpoint exists.
-
-Usage:
-    python -m external_eval.sberquadqa.run_all
-    python -m external_eval.sberquadqa.run_all --limit 10  # smoke
-"""
 from __future__ import annotations
 
 import argparse

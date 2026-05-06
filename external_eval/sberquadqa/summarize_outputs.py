@@ -1,19 +1,3 @@
-"""Aggregated post-analysis across already-scored models for SberQuadQA OOD run.
-
-Reads existing outputs/<model_tag>/{metrics_summary.json,run_meta.json,
-chunks_scored.parquet,examples_scored.parquet} and writes:
-
-    leaderboard.csv
-    leaderboard.md
-    combined_bar_metrics.png
-    combined_roc_curve.png
-    combined_pr_curve.png
-    metrics_by_n_chunks.csv
-    metrics_by_n_chunks.png
-    report_interpretation.md
-
-Does NOT re-score, NOT re-tune thresholds, NOT touch text.
-"""
 from __future__ import annotations
 
 import argparse
@@ -25,8 +9,6 @@ import numpy as np
 
 DEFAULT_OUTPUTS = Path(__file__).resolve().parent / "outputs"
 
-
-# ---------------------------- IO helpers ------------------------------------
 
 def _model_dirs(outputs_dir: Path) -> List[Path]:
     return sorted(p for p in outputs_dir.iterdir() if p.is_dir())
@@ -53,8 +35,6 @@ def _read_model_artifacts(model_dir: Path) -> Optional[Dict]:
     }
 
 
-# ---------------------------- bucketing -------------------------------------
-
 def _parse_buckets(spec: str) -> List[Tuple[str, int, int]]:
     """Parse "1-3,4-6,7-10,11-20,21+" into [(label, lo, hi_inclusive_or_inf)]."""
     out: List[Tuple[str, int, int]] = []
@@ -74,8 +54,6 @@ def _bucket_for(n: int, buckets: List[Tuple[str, int, int]]) -> Optional[str]:
             return label
     return None
 
-
-# ---------------------------- leaderboard -----------------------------------
 
 def build_leaderboard_row(art: Dict) -> Dict:
     s = art["summary"]
@@ -142,8 +120,6 @@ def _df_to_markdown(df) -> str:
         lines.append("| " + " | ".join(cells) + " |")
     return "\n".join(lines) + "\n"
 
-
-# ---------------------------- combined plots --------------------------------
 
 def plot_combined_bar(df_lb, outputs_dir: Path):
     import matplotlib
@@ -225,8 +201,6 @@ def plot_combined_roc_pr(arts: List[Dict], outputs_dir: Path, score_field: str):
     print(f"[summarize] wrote {outputs_dir / 'combined_pr_curve.png'}")
 
 
-# ---------------------------- per-bucket ------------------------------------
-
 def per_bucket_metrics(arts: List[Dict], outputs_dir: Path,
                        score_field: str, bucket_spec: str):
     import pandas as pd
@@ -264,13 +238,12 @@ def per_bucket_metrics(arts: List[Dict], outputs_dir: Path,
             try:
                 roc = float(roc_auc_score(y, s)) if len(set(y)) > 1 else float("nan")
                 pr_auc = float(average_precision_score(y, s)) if len(set(y)) > 1 else float("nan")
-            except Exception:  # noqa: BLE001
+            except Exception:
                 roc = float("nan"); pr_auc = float("nan")
             y_pred = s > threshold
             p, r, f1, _ = precision_recall_fscore_support(
                 y, y_pred, average="binary", zero_division=0
             )
-            # top1_acc: per example_id, argmax score chunk's gt
             top1_hits: List[int] = []
             for _, g in sub.groupby("example_id"):
                 if not g["gt_is_relevant"].any():
@@ -304,11 +277,12 @@ def per_bucket_metrics(arts: List[Dict], outputs_dir: Path,
         print(f"[summarize] metrics_by_n_chunks plot skipped (matplotlib unavailable: {e})")
     return df_out
 
-
+import matplotlib
+import matplotlib.pyplot as plt
 def _plot_per_bucket(df_out, outputs_dir: Path, bucket_order: List[str]):
-    import matplotlib
+
     matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
+    
 
     metric_panels = ["roc_auc", "pr_auc", "top1_acc"]
     fig, axes = plt.subplots(1, len(metric_panels), figsize=(5 * len(metric_panels), 4),
@@ -330,8 +304,6 @@ def _plot_per_bucket(df_out, outputs_dir: Path, bucket_order: List[str]):
     plt.close(fig)
     print(f"[summarize] wrote {out}")
 
-
-# ---------------------------- interpretation --------------------------------
 
 def write_interpretation(df_lb, df_buckets, outputs_dir: Path, score_field: str):
     best = df_lb.iloc[0]
@@ -427,8 +399,6 @@ Score field для кривых и per-bucket метрик: `{score_field}`.
     out.write_text(md, encoding="utf-8")
     print(f"[summarize] wrote {out}")
 
-
-# ---------------------------- main ------------------------------------------
 
 def main():
     ap = argparse.ArgumentParser()

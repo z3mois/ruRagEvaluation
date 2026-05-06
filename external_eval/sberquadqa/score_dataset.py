@@ -1,12 +1,3 @@
-"""Score prepared SberQuadQA with a trained TRACE evaluator (out-of-domain).
-
-Thresholds come ONLY from result.json next to the checkpoint, or fallback to 0.5.
-No threshold tuning is performed on SberQuadQA.
-
-Usage:
-    python -m external_eval.sberquadqa.score_dataset \
-        --model_key "BAAI-bge-m3 (len=1024)" --limit 10
-"""
 from __future__ import annotations
 
 import argparse
@@ -16,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-
+import pandas as pd
 from ._common import (
     MODEL_REGISTRY,
     aggregate_chunk_scores,
@@ -96,16 +87,14 @@ def main():
     try:
         from tqdm import tqdm
         iterator = tqdm(df.itertuples(index=False), total=len(df), desc=f"score[{args.model_key}]")
-    except Exception:  # noqa: BLE001
+    except Exception:
         iterator = df.itertuples(index=False)
 
     t0 = time.time()
     for row in iterator:
         ex = row._asdict() if hasattr(row, "_asdict") else dict(row)
-        # parquet roundtrip can give numpy arrays — normalise
         gt_per_chunk = list(ex["gt_is_relevant_per_chunk"])
         docs = ex["documents_sentences_ru"]
-        # documents_sentences_ru is List[List[List[str]]] in parquet — already correct shape
 
         example_payload = {
             "question_ru": ex["question_ru"],
@@ -142,18 +131,15 @@ def main():
         n_used = batch["n_chunks_used"]
         per_chunk = aggregate_chunk_scores(res["probs"], chunk_id_per_token, n_used)
 
-        # adherence: mean over response tokens
         resp_mask = res["masks"]["response"]
         if resp_mask.any():
             mean_adh = float(np.asarray(res["probs"]["adherence"])[resp_mask].mean())
         else:
             mean_adh = float("nan")
 
-        # determine which gt-relevant chunks were dropped (chunks with id >= n_used)
         n_relevant_dropped = sum(1 for i, v in enumerate(gt_per_chunk) if v and i >= n_used)
         n_relevant_gt = int(sum(gt_per_chunk))
 
-        # per-chunk rows (for chunks that fit)
         chunk_text_by_id = {i: docs[0][i][1] for i in range(n_used)}
         for r in per_chunk:
             cid = r["chunk_id"]
@@ -176,7 +162,6 @@ def main():
                 "max_length": max_length,
             })
 
-        # per-example aggregates
         scores = np.array([r["rel_prob_mean"] for r in per_chunk]) if per_chunk else np.array([])
         if scores.size > 0:
             order = np.argsort(-scores)
@@ -205,7 +190,7 @@ def main():
     print(f"[score] processed={n_processed}, skipped={n_skipped}, truncated={n_truncated}, "
           f"time={elapsed:.1f}s")
 
-    import pandas as pd  # noqa: F811
+
     chunks_df = pd.DataFrame(chunk_rows)
     examples_df = pd.DataFrame(example_rows)
     chunks_path = out_dir / "chunks_scored.parquet"

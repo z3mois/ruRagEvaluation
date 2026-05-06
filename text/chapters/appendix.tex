@@ -23,32 +23,34 @@ USER:
 \subsection*{А.2. Промпт LLM-оценщика без дообучения (Qwen2.5-72B)}
 
 Промпт, использованный в сравнительном эксперименте оценки без дообучения на базе
-Qwen2.5-72B (см. раздел~\ref{sec:classifier_vs_llm}). Оценщик не используется для
-построения разметки корпуса RAGBench-RU. Промпт приведён в исходной англоязычной
-формулировке оригинальной статьи RAGBench и подавался большой языковой модели
-вместе с англоязычными примерами исходного корпуса; русскоязычная версия промпта
-и запуск на RAGBench-RU в рамках данной работы не выполнялись.
+Qwen2.5-72B (см. раздел~\ref{sec:classifier_vs_llm}), соответствует англоязычной
+схеме промпта из оригинальной работы RAGBench. Оценщик не используется для
+построения разметки корпуса RAGBench-RU.
 
-\begin{verbatim}
-SYSTEM:
-You annotate the quality of RAG systems. Determine:
-1) which document sentences are relevant to the question;
-2) which of them are actually used in the answer;
-3) whether the full answer is supported by the context (adherence, true/false).
+Модели передавались документы с ключами предложений, вопрос и ответ. На выходе
+запрашивался JSON-объект с полями
+\texttt{relevance\_explanation},
+\texttt{all\_relevant\_sentence\_keys},
+\texttt{overall\_supported\_explanation},
+\texttt{overall\_supported},
+\texttt{sentence\_support\_information} и
+\texttt{all\_utilized\_sentence\_keys}.
 
-USER:
-Question: {question}
-Documents (JSON, list of sentence lists with keys):
-{documents_sentences}
-Answer: {response}
+Поле \texttt{all\_relevant\_sentence\_keys} содержит ключи предложений документов,
+релевантных вопросу. Поле \texttt{all\_utilized\_sentence\_keys} содержит ключи
+предложений документов, использованных при построении ответа. Поле
+\texttt{overall\_supported} отражает, поддерживается ли ответ в целом документами,
+а \texttt{sentence\_support\_information} содержит информацию о поддержке отдельных
+предложений ответа.
 
-Return JSON:
-{
-  "all_relevant_sentence_keys":  [<keys>],
-  "all_utilized_sentence_keys":  [<keys>],
-  "adherence_score":             true | false
-}
-\end{verbatim}
+В последующем количественном анализе использовались только поля
+\texttt{all\_relevant\_sentence\_keys} и
+\texttt{all\_utilized\_sentence\_keys}; поле
+\texttt{overall\_supported} и подробная информация
+\texttt{sentence\_support\_information} не входили в метрики
+таблицы~\ref{tab:llm_errors}. Полный текст промпта приведён в ноутбуке
+\texttt{test\_llm\_razm.ipynb}.
+
 
 \subsection*{А.3. Статистика ошибок LLM-оценщика по поддатасетам}
 
