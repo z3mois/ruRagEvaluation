@@ -84,7 +84,7 @@
   русскоязычный аналог RAGBench-RU: текстовые поля 7~поддатасетов переведены
   моделью Qwen2.5-72B-Instruct, а эталонная разметка перенесена из исходного
   RAGBench по сохранённым ключам предложений без повторной автоматической аннотации.
-  Разработан пайплайн обучения токен-уровневых моделей-оценщиков TRACe с тремя
+  Разработан конвейер  обучения токен-уровневых моделей-оценщиков TRACe с тремя
    классификационными головами (relevance, utilization, adherence) и автоматическим
     подбором порогов. Проведена основная сетка экспериментов на трёх базовых моделях
     (DeBERTa-v3-large, BGE-M3, RuModernBERT); ruRoPEBert-e5-base-2k проверялась только
@@ -94,17 +94,16 @@
       всего около восьмидесяти обученных конфигураций. Лучшая конфигурация на русском
        (ModernBERT-base, длина~2048, Simple~3:3:1) достигает
         среднего Test~F1 = 0.858 относительно эталонной разметки RAGBench-RU.
-        Дополнительно Qwen2.5-72B использован как LLM-оценщик без дообучения
-        на исходном англоязычном RAGBench на уровне предложений (совпадение по
-        предложениям, среднее число пропусков); русскоязычные данные RAGBench-RU
-        на вход большой языковой модели не подавались. Поэтому прямое сравнение
-        классификатора и LLM-оценщика по единой метрике на уровне токенов и на
-        одном корпусе в работе не проводилось, а полученное сопоставление
-        трактуется как сравнение с опорным ориентиром. Тем не менее наблюдаемые
-        результаты согласуются с идеей RAGBench о практической применимости
-        компактного классификатора как более дешёвой альтернативы LLM-оценщику.
-        Отдельно описан интерактивный сервис оценки на Streamlit и
-         проведён анализ переноса подхода на русский язык.
+        Дополнительно Qwen2.5-72B использовалась как LLM-оценщик без дообучения
+        на исходном англоязычном наборе данных RAGBench. Это сопоставление рассматривается как
+        опорный ориентир, а не как прямое сравнение: русскоязычный RAGBench-RU
+        на вход модели не подавался, и единая токен-уровневая метрика на одном
+        корпусе не вычислялась. Результаты согласуются с идеей RAGBench о том,
+        что компактный дообученный классификатор может быть практичной и более
+        дешёвой альтернативой LLM-оценщику. Для демонстрации практического
+        применения разработан Streamlit-сервис интерактивной оценки, а обученная
+        модель дополнительно проверена на внешнем русскоязычном датасете SberQuAD-QA.
+
 }
 
 \AbstractEng{
@@ -125,13 +124,15 @@ Russian-language Retrieval-Augmented Generation systems. Building on
      around eighty trained configurations in total. The best Russian
      configuration (ModernBERT-base, length~2048, Simple~3:3:1) reaches mean
      Test~F1 = 0.858 against the RAGBench-RU reference annotation.
-     In addition, Qwen2.5-72B is used as a zero-shot sentence-level evaluator
-     on the original English RAGBench (sentence overlap, miss-avg); RAGBench-RU
-     examples are not passed to the LLM evaluator. Therefore, a direct
-     comparison of the classifier and the LLM evaluator under a single
-     token-level metric and on a single corpus is not carried out; this
-     comparison is treated only as a reference point. An interactive Streamlit service
-     and an analysis of cross-lingual transfer complete the study.
+     In addition, Qwen2.5-72B was used as a zero-shot LLM evaluator on the
+     original English RAGBench. This experiment is treated as a reference point
+     rather than a direct comparison: RAGBench-RU examples were not passed to
+     the model, and no shared token-level metric was computed on a single
+     corpus. The results are nevertheless consistent with the central idea of
+     RAGBench: a compact fine-tuned classifier can be a practical and cheaper
+     alternative to an LLM evaluator. To demonstrate practical use, we also
+     developed an interactive Streamlit evaluation service and tested the
+     trained model on the external Russian SberQuAD-QA dataset.
 }
 
 \TitlePageText{Титульная страница}
