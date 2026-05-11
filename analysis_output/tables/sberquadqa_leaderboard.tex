@@ -1,0 +1,17 @@
+\begin{table}[H]
+\centering
+\caption{Применение обученных оценщиков на внешнем русскоязычном датасете SberQuAD-QA без дообучения и без подбора порогов. Сравнение проводится только по релевантности, поскольку сберовская разметка не содержит меток использованности и верности. Пороги классификации взяты из соответствующих прогонов на RAGBench-RU. Доля пропущенных --- доля примеров, не помещающихся в максимальную длину.}
+\label{tab:sberquadqa_leaderboard}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{lcccrr}
+\toprule
+модель & \makecell{длина\\контекста} & $F_1$ & ROC-AUC & \makecell{доля верных\\классификаций} & \makecell{пропущено,\\\%} \\
+\midrule
+DeBERTa-v3-large       & 512  & 0.577 & 0.9126 & 0.694 & 10.49 \\
+BGE-M3                 & 1024 & 0.668 & 0.9201 & 0.815 & 0.03  \\
+\textbf{ModernBERT}    & \textbf{2048} & \textbf{0.757} & \textbf{0.9275} & \textbf{0.883} & \textbf{0.01} \\
+\bottomrule
+\end{tabular}
+\end{table}
