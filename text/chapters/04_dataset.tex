@@ -58,6 +58,20 @@ $[q][\text{SEP}][\text{документы}][\text{SEP}][a]$ (см. раздел~
 единую схему вычисления функции потерь. Поэтому метка adherence не интерпретируется
 как локализация неподтверждённых фрагментов внутри ответа.
 
+На рис.~\ref{fig:trace_gradient_example} приведён схематический пример такого
+токенового представления для одного вопроса, набора найденных документов и
+ответа.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{trace_gradient_example.png}
+\caption{Иллюстрация различия между тремя компонентами TRACe-разметки:
+relevance и utilization задаются на фрагментах найденных документов, тогда как
+adherence относится к ответу. Интенсивность цвета является условной и не
+является выходом обученной модели.}
+\label{fig:trace_gradient_example}
+\end{figure}
+
 
 \subsection{Схема перевода корпуса}
 \label{sec:translation_pipeline}
